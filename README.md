@@ -33,7 +33,7 @@ pnpm start
 - A responsive, map-first bay explorer with metric-specific color lenses for temperature, dissolved oxygen, pH, turbidity, and conductivity.
 - A calm, no-label gray base map with only major-city labels, built for quick orientation instead of road-by-road navigation.
 - A kid-friendly habitat view that segments the Bay into open bay, estuary, shallow flats, and tidal marsh regions with simple icons and plain-language descriptions.
-- Navigable OpenStreetMap/Leaflet geography with selectable San Pablo Bay, Suisun Bay, Central Bay, South Bay, and Alviso/tributary regions.
+- Navigable Esri World Light Gray/Leaflet geography with selectable San Pablo Bay, Suisun Bay, Central Bay, South Bay, and Alviso/tributary regions.
 - Hoverable region polygons and keyboard-accessible region chips with a detail rail showing source-point coverage, observed spans, timestamps, freshness, and provenance.
 - A bounded live USGS source query with a dated captured fallback snapshot when local/deployed outbound access is unavailable.
 - A station profile with four metric cards and explicit unavailable states.
