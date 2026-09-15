@@ -2,13 +2,13 @@
 
 Baywatcher is an account-free educational dashboard for understanding water-quality data around San Francisco Bay. The homepage is a map-first explorer: navigate a calm, simplified basemap, hover or select a body-of-water region, switch between water-quality and habitat views, and read the source-point values represented by that region in context. Source, unit, collection time, method, depth, qualifier, and freshness all matter.
 
-The deployed preview is intentionally review-gated. It shows the complete product shape, but it does not claim live measurement values until the exact USGS series mappings have been validated. That choice is part of the product, not a temporary cosmetic limitation: the production plan explicitly rejects fabricated measurements and neighboring-station substitution.
+The deployed preview is intentionally review-gated. It defaults to a dated source snapshot and does not claim current conditions. An operator can explicitly enable a live candidate-series preview, but exact USGS time-series IDs and sensor depths remain visible and are not promoted to published station readings until reviewed. The production plan explicitly rejects fabricated measurements and neighboring-station substitution.
 
 ## Quick start
 
 Requirements:
 
-- Node.js 20+ (the development environment currently uses Node 24).
+- Node.js 20.19+ (CI uses Node 22.13).
 - pnpm 9+.
 
 ```bash
@@ -22,11 +22,13 @@ Useful checks:
 
 ```bash
 pnpm typecheck
+pnpm lint
+pnpm test
 pnpm build
 pnpm start
 ```
 
-`pnpm lint` is retained as a script placeholder for teams that add the preferred Next.js lint integration; typechecking and the production build are the required checks in this starter.
+Run the complete local and CI verification sequence with `pnpm check`.
 
 ## What is in the first release
 
@@ -35,14 +37,16 @@ pnpm start
 - A kid-friendly habitat view that segments the Bay into open bay, estuary, shallow flats, and tidal marsh regions with simple icons and plain-language descriptions.
 - Navigable Esri World Light Gray/Leaflet geography with selectable San Pablo Bay, Suisun Bay, Central Bay, South Bay, and Alviso/tributary regions.
 - Hoverable region polygons and keyboard-accessible region chips with a detail rail showing source-point coverage, observed spans, timestamps, freshness, and provenance.
-- A bounded live USGS source query with a dated captured fallback snapshot when local/deployed outbound access is unavailable.
-- A station profile with four metric cards and explicit unavailable states.
+- A default dated USGS source snapshot plus an opt-in, bounded live preview with a fallback when outbound access is unavailable.
+- Time-series metadata that keeps multiple sensors and depths distinct instead of collapsing them by station and parameter.
+- A station profile with five metric cards and explicit unavailable states.
 - Educational explanations for temperature, dissolved oxygen, pH, and turbidity.
 - Provenance affordances: provider ID, station source link, review date, and state.
 - Wildlife and conservation-context panels with reviewed-import-pending states.
 - A methods page that documents interpretation, freshness, source separation, accessibility, and launch gates.
 - Read-only API contracts for allowlisted stations, bounded station measurements, and health.
-- Provider boundaries in `src/lib/providers/usgs.ts`, `src/lib/providers/wqp.ts`, and `src/lib/providers/noaa.ts` for future validation and normalization.
+- Validating provider boundaries in `src/lib/providers/usgs.ts`, `src/lib/providers/wqp.ts`, and `src/lib/providers/noaa.ts`.
+- Unit tests, linting, typechecking, production-build CI, dependency updates, and an initial PostgreSQL migration.
 - A visual language built from CSS: deep estuary navy, water-aqua surfaces, warm caution accents, generous whitespace, and strong type hierarchy.
 
 ## Product decisions
@@ -59,9 +63,9 @@ The homepage opens directly on a real, navigable Leaflet map using a simplified 
 
 The habitat toggle is a broad learning layer, not a biodiversity inventory. It uses stable, classroom-friendly ecosystem categories so a young learner can ask “what kind of place is this?” without confusing an illustrated habitat context with a claim that a particular species was observed there today. Live species observations remain a separate future data product with its own provenance and licensing review.
 
-The map uses a bounded USGS query rather than a user-supplied URL: `latest-continuous/items` provides recent continuous observations and `monitoring-locations/items` supplies names/types/coordinates. The route aggregates duplicate records by station and parameter, selecting the newest timestamp, preserves source units/qualifiers/approval status, and returns a short public cache. A production ingestion layer should eventually publish from PostgreSQL rather than making the map dependent on an external request at page load.
+The public map defaults to the captured snapshot. When `USGS_LIVE_DATA_ENABLED=true`, a bounded CQL query requests only the station allowlist and joins `latest-continuous/items`, `monitoring-locations/items`, and `time-series-metadata/items`. Records are keyed by `time_series_id`, so upper/lower sensors remain separate. Units, qualifiers, approval status, method, depth, statistic code, and collection time are retained. A production ingestion layer should ultimately publish verified snapshots from PostgreSQL rather than depending on an external request at page load.
 
-If the live feed fails, the route returns an explicitly dated source snapshot captured from the official endpoint. The map displays “Source degraded” and the detail rail labels those values as older; no empty value is filled with a neighbor or a synthetic number.
+If an enabled live preview fails, the route returns the explicitly dated source snapshot. The map displays a degraded-source notice and labels those values as older or archival; no empty value is filled with a neighbor or a synthetic number.
 
 ### Color system and AQI-like scanning
 
@@ -75,11 +79,11 @@ Each metric gets a distinct hue because the metrics do not share a common unit o
 | Turbidity | amber | This is the cloudiness lens; NTU/FNU method distinctions remain visible. |
 | Conductivity | green | This is the dissolved-ion/conductance lens, not a synonym for salinity. |
 
-The small lower/mid/higher color key is a visual scanning aid only. It is not a composite water-health score, regulatory threshold, or swimming/drinking/fishing/pet-safety advisory. The exact source value, unit, timestamp, freshness state, qualifier, and source link remain the authoritative interface.
+Within each metric hue, light-to-dark marker shades encode the relative range in the currently loaded source set. The lower/middle/higher key is a visual scanning aid only—not a composite water-health score, regulatory threshold, or swimming/drinking/fishing/pet-safety advisory. Gray markers have no value for the selected metric. The exact source value, series, unit, timestamp, depth, freshness state, qualifier, and source link remain the authoritative interface.
 
 ### Preview mode and truthful absence
 
-The candidate station `USGS-11162765` comes from the production plan and is linked to its official station page. It is not described as having verified temperature, dissolved oxygen, pH, or turbidity coverage here. Each card says that mapping is awaiting verification.
+The candidate station `USGS-11162765` is linked to its official station page. Its source metadata currently contains distinct upper- and lower-depth time series, demonstrating why parameter-only selection is unsafe. It is not described as having verified temperature, dissolved oxygen, pH, turbidity, or conductivity coverage here. Each card states the relevant verification gate.
 
 This avoids three common data errors:
 
@@ -102,6 +106,9 @@ This avoids three common data errors:
 | `src/lib/providers/wqp.ts` | WQP historical/discrete result URL boundary |
 | `src/lib/providers/noaa.ts` | NOAA CO-OPS complementary coastal product boundary |
 | `src/lib/data.ts` | Current review-gated station registry and snapshot state |
+| `src/lib/regions.ts` | Geographic region and habitat definitions |
+| `src/lib/map-utils.ts` | Tested value-scale, selection, formatting, and region-summary logic |
+| `db/migrations/0001_initial.sql` | Initial durable station, series, measurement, run, and publication schema |
 
 Server-rendered pages call shared data directly. They do not make HTTP requests to the app’s own API. The API exists for external clients and future ingestion boundaries, not as an unnecessary internal hop.
 
@@ -123,11 +130,11 @@ Before enabling live data, create a coverage matrix with:
 - qualifiers and provisional state;
 - query used and response capture date.
 
-The initial candidate station is a starting point, not proof of four-metric coverage.
+The initial candidate station is a starting point, not proof of five-metric coverage.
 
 ### Persistence
 
-The production plan recommends managed PostgreSQL through Neon and a typed schema/migration layer such as Drizzle. The reason for a database is durable last-successful snapshots, ingestion bookkeeping, atomic publication, and reviewable history—not user accounts.
+The repository now includes a provider-neutral PostgreSQL migration for durable last-successful snapshots, ingestion bookkeeping, atomic publication pointers, and reviewable history—not user accounts. The deployment may use Neon or another managed PostgreSQL service; runtime database wiring waits for deployment credentials and verified series choices.
 
 Git remains the authority for station configuration, reviewed explanations, and the small conservation crosswalk. The database owns fetched measurements and ingestion state. Do not create competing manual edits in both places.
 
@@ -212,11 +219,12 @@ Create one repository, commit the app, lockfile, migrations, reviewed content, f
 
 Import the repository with the Next.js preset. Set a supported Node runtime and a function region near the database. Start with the Vercel-provided domain. Production, preview, and development environment variables must be scoped separately.
 
-When the live integration is approved, configure names such as:
+For an explicitly enabled live-source preview, configure:
 
 ```text
 DATABASE_URL
 USGS_API_KEY
+USGS_LIVE_DATA_ENABLED=true
 CRON_SECRET
 NEXT_PUBLIC_SITE_URL
 ```

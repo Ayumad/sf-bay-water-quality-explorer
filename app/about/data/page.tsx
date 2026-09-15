@@ -15,10 +15,10 @@ export default function DataMethodsPage() {
           <div className="prose">
             <h2>What this release does</h2>
             <p>This release is an educational product preview with a map-first homepage. The map is the first thing on screen: it establishes broad body-of-water regions, color-specific metric lenses, a simplified base layer, hover/focus details, measurement states, provenance affordances, and honest empty states needed for a production dashboard.</p>
-            <p>The homepage requests a bounded USGS latest-continuous feed and monitoring-location metadata. If the live request is unavailable, it shows a dated source snapshot with a degraded-source label. Exact metric, depth, method, cadence, and series mappings still need a formal coverage review before the values become a production publication contract.</p>
+            <p>The default homepage uses an explicitly dated USGS source snapshot. Operators may enable a bounded live preview, which joins latest observations to monitoring-location and time-series metadata and keeps distinct sensor depths separate. Candidate values are never promoted to a verified station snapshot without a formal coverage review.</p>
 
             <h2>Why colors are metric-specific</h2>
-            <p>Temperature, dissolved oxygen, pH, turbidity, and conductivity have different units and meanings, so the map uses a distinct hue for each selected lens. The selected region card reports coverage while each source point keeps its exact value and timestamp. A small lower/mid/higher visual key helps scanning, but it is not an AQI-style composite score, ecological threshold system, or safety advisory.</p>
+            <p>Temperature, dissolved oxygen, pH, turbidity, and conductivity have different units and meanings, so the map uses a distinct hue for each selected lens. Light-to-dark shades encode the relative observed range in the currently loaded source set. Every underlying sensor series remains listed, and the scale is not an AQI-style score, ecological threshold system, or safety advisory.</p>
 
             <h2>Why there is a habitat view</h2>
             <p>The optional habitat view uses four broad, colorful learning categories: open bay, estuary, shallow flats, and tidal marsh. They help a young learner connect a water region to the kinds of places plants and animals use. They are not live biodiversity observations, species counts, or conservation-status claims; those require a separate reviewed observation and authority workflow.</p>
@@ -27,7 +27,7 @@ export default function DataMethodsPage() {
             <p>Modern USGS continuous data is the primary map source for recent readings. The Water Quality Portal adds historical and discrete sample context, while NOAA CO-OPS can complement coastal temperature, conductivity, salinity, tides, and currents where station coverage overlaps. These products have different semantics and should not be mixed into a single “live” card.</p>
             <p>The planned reading path is visitor → app → published database snapshot. Visitors should never trigger an unbounded upstream query. A scheduled importer will validate, normalize, and publish an atomic station/series batch after the coverage gate is passed.</p>
 
-            <h2>Reading the four metrics</h2>
+            <h2>Reading the five metrics</h2>
             <table className="decision-table">
               <thead><tr><th>Metric</th><th>Interface rule</th></tr></thead>
               <tbody>
@@ -35,6 +35,7 @@ export default function DataMethodsPage() {
                 <tr><td>Dissolved oxygen</td><td>Keep concentration and percent saturation separate. Do not convert without the required variables and method.</td></tr>
                 <tr><td>Turbidity</td><td>Keep method and unit distinctions such as NTU and FNU visible; cloudiness is not a universal safety scale.</td></tr>
                 <tr><td>pH</td><td>Show the pH scale without inventing a concentration unit; preserve method metadata where supplied.</td></tr>
+                <tr><td>Conductivity</td><td>Keep source units and depth visible; do not relabel conductivity as salinity.</td></tr>
               </tbody>
             </table>
 

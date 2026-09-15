@@ -7,6 +7,9 @@ export const NOAA_COOPS_DATA_API = "https://api.tidesandcurrents.noaa.gov/api/pr
 export const NOAA_COOPS_METADATA_API = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi";
 
 export function buildNoaaWaterTemperatureUrl(station: string) {
+  if (!/^\d{7}$/.test(station)) {
+    throw new Error("NOAA CO-OPS station IDs must contain exactly seven digits");
+  }
   const params = new URLSearchParams({
     date: "today",
     station,
