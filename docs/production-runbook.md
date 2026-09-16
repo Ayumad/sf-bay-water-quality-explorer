@@ -42,5 +42,8 @@ Run pnpm check, then verify:
 - live-preview mode with and without a USGS API key;
 - timeout, malformed payload, empty collection, 429, and 5xx fallbacks;
 - keyboard navigation and 360 px layout;
+- the SFEI Baylands Habitat Map tile layer loads from Suisun Bay through Lower
+  South Bay, includes visible attribution, and fails without obscuring the base
+  map or station list;
 - every displayed reading includes series, collection time, unit, source, and
   any supplied qualifier/approval state.

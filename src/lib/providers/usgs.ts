@@ -2,6 +2,7 @@ import {
   getStationSlug,
   mapStationAllowlist,
   metricByParameterCode,
+  publicStationName,
 } from "@/src/lib/data";
 import type {
   MapMeasurement,
@@ -216,7 +217,7 @@ export function buildUsgsMapPoints(
     const point = byLocation.get(observation.stationId) ?? {
       id: observation.stationId,
       stationSlug: getStationSlug(observation.stationId),
-      name: location?.name ?? observation.stationId,
+      name: publicStationName(observation.stationId, location?.name),
       siteType: location?.siteType ?? "Monitoring location",
       lat: location?.lat ?? observation.lat,
       lng: location?.lng ?? observation.lng,
@@ -253,6 +254,7 @@ export function buildUsgsMapPoints(
 
   return [...byLocation.values()]
     .map((point) => ({ ...point, measurements: point.measurements.sort((a, b) => a.key.localeCompare(b.key) || a.seriesId.localeCompare(b.seriesId)) }))
+    .filter((point) => point.measurements.some((measurement) => measurement.value !== null))
     .sort((a, b) => new Date(b.lastUpdated ?? 0).getTime() - new Date(a.lastUpdated ?? 0).getTime());
 }
 

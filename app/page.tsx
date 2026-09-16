@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BayMap } from "@/src/components/BayMap";
+import { MetricExplorer } from "@/src/components/MetricExplorer";
 import { StationCard } from "@/src/components/StationCard";
-import { metricDefinitions, stations } from "@/src/lib/data";
+import { stations } from "@/src/lib/data";
 
 export default function HomePage() {
   return (
@@ -46,16 +47,9 @@ export default function HomePage() {
             <p className="section-kicker">04 / learn the signal</p>
               <h2 id="why-heading">Five measurements, five different stories.</h2>
               <p>Water-quality numbers are clues about conditions, not a single “good” or “bad” score. Read the unit, collection time, method, and source alongside every result.</p>
-              <Link className="arrow-link" href="/about/data">See the data methods <span aria-hidden="true">→</span></Link>
+              <Link className="arrow-link" href="/learn/metrics">Open the complete metric guide <span aria-hidden="true">→</span></Link>
             </div>
-            <div className="metric-explainers">
-              {Object.values(metricDefinitions).map((metric) => (
-                <article className="explainer" key={metric.label}>
-                  <h3>{metric.label} <span className="metric-symbol">{metric.symbol}</span></h3>
-                  <p>{metric.explanation}</p>
-                </article>
-              ))}
-            </div>
+            <MetricExplorer />
           </section>
         </section>
       </main>

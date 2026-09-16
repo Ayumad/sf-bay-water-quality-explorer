@@ -34,13 +34,14 @@ Run the complete local and CI verification sequence with `pnpm check`.
 
 - A responsive, map-first bay explorer with metric-specific color lenses for temperature, dissolved oxygen, pH, turbidity, and conductivity.
 - A calm, no-label gray base map with only major-city labels, built for quick orientation instead of road-by-road navigation.
-- A kid-friendly habitat view that segments the Bay into open bay, estuary, shallow flats, and tidal marsh regions with simple icons and plain-language descriptions.
-- Navigable Esri World Light Gray/Leaflet geography with selectable San Pablo Bay, Suisun Bay, Central Bay, South Bay, and Alviso/tributary regions.
-- Hoverable region polygons and keyboard-accessible region chips with a detail rail showing source-point coverage, observed spans, timestamps, freshness, and provenance.
+- A sourced habitat view using the San Francisco Estuary Institute's Baylands Habitat Map 2020 v1.1 tiles, with mapped classes that follow real shorelines and habitat boundaries.
+- Navigable Esri World Light Gray/Leaflet geography spanning Suisun Bay, Carquinez Strait, San Pablo Bay, Central Bay, South Bay, and Lower South Bay.
+- Keyboard-accessible Bay-area chips with a detail rail showing source-point coverage, observed spans, timestamps, freshness, and provenance. The chips organize stations without inventing station service-area polygons.
 - A default dated USGS source snapshot plus an opt-in, bounded live preview with a fallback when outbound access is unavailable.
 - Time-series metadata that keeps multiple sensors and depths distinct instead of collapsing them by station and parameter.
 - A station profile with five metric cards and explicit unavailable states.
-- Educational explanations for temperature, dissolved oxygen, pH, and turbidity.
+- An interactive metric guide for temperature, dissolved oxygen, pH, turbidity, and conductivity, with sourced comparison bands only where defensible and explicit interpretation limits.
+- Curated public station names, a default filter for locations without the selected metric, and friendly unavailable states when a user chooses to reveal them.
 - Provenance affordances: provider ID, station source link, review date, and state.
 - Wildlife and conservation-context panels with reviewed-import-pending states.
 - A methods page that documents interpretation, freshness, source separation, accessibility, and launch gates.
@@ -59,9 +60,9 @@ The site is educational. It is not a swimming, drinking, fishing, pet, or public
 
 ### Map first, with a region summary and source-point alternative
 
-The homepage opens directly on a real, navigable Leaflet map using a simplified Esri World Light Gray base layer with visible attribution. Only major cities are added as labels by the app; the base layer intentionally keeps roads and minor place names quiet. The map is organized into broad body-of-water regions rather than implying that one sensor represents an entire basin. Region overlays support hover and click selection; the region chips provide a keyboard-friendly equivalent. The detail rail reports how many source points have the selected metric, the observed span without averaging unlike sensors or depths, the freshest timestamp, and every source point included in that region.
+The homepage opens directly on a real, navigable Leaflet map using a simplified Esri World Light Gray base layer with visible attribution. Only major cities are added as labels by the app; the base layer intentionally keeps roads and minor place names quiet. The map is organized into named bodies of water without implying that one sensor represents an entire basin. Region chips move the map and provide a keyboard-friendly station grouping. The detail rail reports how many source points have the selected metric, the observed span without averaging unlike sensors or depths, the freshest timestamp, and every source point included in that region.
 
-The habitat toggle is a broad learning layer, not a biodiversity inventory. It uses stable, classroom-friendly ecosystem categories so a young learner can ask “what kind of place is this?” without confusing an illustrated habitat context with a claim that a particular species was observed there today. Live species observations remain a separate future data product with its own provenance and licensing review.
+The habitat toggle renders the SFEI Baylands Habitat Map 2020 v1.1 Web Mercator tile service across the main Bay. Its mapped habitat classes follow the source geometry; Bay-area labels remain navigational aids and are not habitat or monitoring boundaries. The layer is context, not a claim that a particular species was observed there today. See `docs/habitat-layer.md` for source, version, coverage, and limitations.
 
 The public map defaults to the captured snapshot. When `USGS_LIVE_DATA_ENABLED=true`, a bounded CQL query requests only the station allowlist and joins `latest-continuous/items`, `monitoring-locations/items`, and `time-series-metadata/items`. Records are keyed by `time_series_id`, so upper/lower sensors remain separate. Units, qualifiers, approval status, method, depth, statistic code, and collection time are retained. A production ingestion layer should ultimately publish verified snapshots from PostgreSQL rather than depending on an external request at page load.
 
@@ -95,7 +96,8 @@ This avoids three common data errors:
 
 | Route | Responsibility |
 | --- | --- |
-| `/` | Map-first Bay explorer, water-quality metric lenses, habitat regions, hover/focus region summaries, source-point details, source coverage cards, metric explanations |
+| `/` | Map-first Bay explorer, water-quality metric lenses, sourced habitat tiles, Bay-area summaries, source-point details, source coverage cards, metric explanations |
+| `/learn/metrics` | Sourced interpretation guide, contextual scales, comparison bands, and metric limitations |
 | `/stations/[slug]` | Station identity, snapshot cards, provenance, species/status empty states, limitations |
 | `/about/data` | Source strategy, metric rules, freshness policy, wildlife/status approach, accessibility and launch gates |
 | `/api/stations` | Allowlisted station metadata |

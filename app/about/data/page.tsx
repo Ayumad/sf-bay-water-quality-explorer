@@ -14,27 +14,33 @@ export default function DataMethodsPage() {
         <div className="methods-grid">
           <div className="prose">
             <h2>What this release does</h2>
-            <p>This release is an educational product preview with a map-first homepage. The map is the first thing on screen: it establishes broad body-of-water regions, color-specific metric lenses, a simplified base layer, hover/focus details, measurement states, provenance affordances, and honest empty states needed for a production dashboard.</p>
+            <p>This release is an educational product preview with a map-first homepage. The map is the first thing on screen: it establishes broad body-of-water learning zones, color-specific metric lenses, a simplified base layer, hover/focus details, measurement states, provenance affordances, and honest empty states needed for a production dashboard.</p>
             <p>The default homepage uses an explicitly dated USGS source snapshot. Operators may enable a bounded live preview, which joins latest observations to monitoring-location and time-series metadata and keeps distinct sensor depths separate. Candidate values are never promoted to a verified station snapshot without a formal coverage review.</p>
+
+            <h2>Station names, missing data, and map boundaries</h2>
+            <p>The public map uses a small, reviewed station catalog instead of showing raw provider identifiers as names. Technical station and time-series IDs remain available behind source links and expandable details for auditability.</p>
+            <p>A station with no usable measurements is removed from the feed. For a selected metric, stations without a value are hidden by default and can be revealed with an explicit “data unavailable” state. Missing never means zero.</p>
+            <p>The station list uses named Bay areas for navigation but does not draw invented station-service boundaries. The habitat view instead uses the published SFEI Baylands Habitat Map 2020 across Suisun Bay, Carquinez Strait, San Pablo Bay, Central Bay, South Bay, and Lower South Bay. It is habitat inventory geometry—not a property, jurisdiction, or wetland delineation.</p>
 
             <h2>Why colors are metric-specific</h2>
             <p>Temperature, dissolved oxygen, pH, turbidity, and conductivity have different units and meanings, so the map uses a distinct hue for each selected lens. Light-to-dark shades encode the relative observed range in the currently loaded source set. Every underlying sensor series remains listed, and the scale is not an AQI-style score, ecological threshold system, or safety advisory.</p>
 
             <h2>Why there is a habitat view</h2>
-            <p>The optional habitat view uses four broad, colorful learning categories: open bay, estuary, shallow flats, and tidal marsh. They help a young learner connect a water region to the kinds of places plants and animals use. They are not live biodiversity observations, species counts, or conservation-status claims; those require a separate reviewed observation and authority workflow.</p>
+            <p>The optional habitat view uses the San Francisco Estuary Institute’s Baylands Habitat Map 2020. It follows mapped deep and shallow subtidal water, tidal flats, tidal channels, marshes, ponds and pannes, managed water, and diked baylands rather than hand-drawn geometric regions. It represents 2020 conditions and is not a live biodiversity observation, species count, current field survey, or conservation-status claim.</p>
 
             <h2>Source strategy</h2>
             <p>Modern USGS continuous data is the primary map source for recent readings. The Water Quality Portal adds historical and discrete sample context, while NOAA CO-OPS can complement coastal temperature, conductivity, salinity, tides, and currents where station coverage overlaps. These products have different semantics and should not be mixed into a single “live” card.</p>
             <p>The planned reading path is visitor → app → published database snapshot. Visitors should never trigger an unbounded upstream query. A scheduled importer will validate, normalize, and publish an atomic station/series batch after the coverage gate is passed.</p>
 
             <h2>Reading the five metrics</h2>
+            <p><Link href="/learn/metrics">The visual metric guide</Link> explains what each measurement can and cannot say. Only pH and dissolved oxygen receive broad numeric reference bands; the other metrics are deliberately presented as contextual comparisons because universal “good versus bad” thresholds would be misleading.</p>
             <table className="decision-table">
               <thead><tr><th>Metric</th><th>Interface rule</th></tr></thead>
               <tbody>
                 <tr><td>Temperature</td><td>Display Celsius initially; preserve the original unit and documented conversion.</td></tr>
-                <tr><td>Dissolved oxygen</td><td>Keep concentration and percent saturation separate. Do not convert without the required variables and method.</td></tr>
+                <tr><td>Dissolved oxygen</td><td>Keep concentration and percent saturation separate. About 2 mg/L is common hypoxia context, not a universal compliance determination.</td></tr>
                 <tr><td>Turbidity</td><td>Keep method and unit distinctions such as NTU and FNU visible; cloudiness is not a universal safety scale.</td></tr>
-                <tr><td>pH</td><td>Show the pH scale without inventing a concentration unit; preserve method metadata where supplied.</td></tr>
+                <tr><td>pH</td><td>Show EPA’s broad aquatic-life ranges with their marine/freshwater scope; preserve method metadata and local natural variation.</td></tr>
                 <tr><td>Conductivity</td><td>Keep source units and depth visible; do not relabel conductivity as salinity.</td></tr>
               </tbody>
             </table>

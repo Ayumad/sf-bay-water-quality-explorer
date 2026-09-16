@@ -78,19 +78,57 @@ export type MapFeed = {
   points: MapPoint[];
 };
 
-export const metricDefinitions: Record<MetricKey, {
+export type MetricReferenceBand = {
+  from: number;
+  to: number;
+  label: string;
+  tone: "concern" | "watch" | "reference" | "context";
+};
+
+export type MetricGuide = {
+  question: string;
+  reading: string;
+  comparison: string;
+  lowLabel: string;
+  highLabel: string;
+  sourceLabel: string;
+  sourceUrl: string;
+  reference: null | {
+    min: number;
+    max: number;
+    unit: string;
+    title: string;
+    bands: MetricReferenceBand[];
+    note: string;
+  };
+};
+
+export type MetricDefinition = {
   label: string;
   symbol: string;
   parameterCode: string;
   explanation: string;
   colors: readonly [string, string, string];
-}> = {
+  guide: MetricGuide;
+};
+
+export const metricDefinitions: Record<MetricKey, MetricDefinition> = {
   temperature: {
     label: "Temperature",
     symbol: "°C",
     parameterCode: "00010",
     explanation: "Temperature influences oxygen availability and the pace of many ecological processes.",
     colors: ["#ffd5cd", "#f27663", "#9f3d31"],
+    guide: {
+      question: "How warm is the water?",
+      reading: "Temperature shapes water chemistry and which organisms can thrive. Warmer water generally holds less dissolved oxygen.",
+      comparison: "There is no universal good temperature. Compare the same station, depth, season, and target species over time.",
+      lowLabel: "Cooler water",
+      highLabel: "Warmer water",
+      sourceLabel: "USGS: Temperature and Water",
+      sourceUrl: "https://www.usgs.gov/water-science-school/science/temperature-and-water",
+      reference: null,
+    },
   },
   dissolvedOxygen: {
     label: "Dissolved oxygen",
@@ -98,6 +136,27 @@ export const metricDefinitions: Record<MetricKey, {
     parameterCode: "00300",
     explanation: "Oxygen dissolved in water; concentration stays separate from percent saturation.",
     colors: ["#d8e6ff", "#4d8cf5", "#234d9d"],
+    guide: {
+      question: "How much oxygen is available to aquatic life?",
+      reading: "Fish, shellfish, and many microorganisms use dissolved oxygen. Concentration changes with temperature, salinity, depth, mixing, and time of day.",
+      comparison: "Lower values deserve attention, but a single reading cannot describe duration, cause, or species-level impact.",
+      lowLabel: "Less oxygen available",
+      highLabel: "More oxygen available",
+      sourceLabel: "USGS: Dissolved Oxygen and Water",
+      sourceUrl: "https://www.usgs.gov/water-science-school/science/dissolved-oxygen-and-water",
+      reference: {
+        min: 0,
+        max: 10,
+        unit: "mg/L",
+        title: "Broad oxygen context",
+        bands: [
+          { from: 0, to: 2, label: "Hypoxic range", tone: "concern" },
+          { from: 2, to: 5, label: "Low; context needed", tone: "watch" },
+          { from: 5, to: 10, label: "More oxygen available", tone: "reference" },
+        ],
+        note: "About 2 mg/L is a commonly used hypoxia threshold. Five mg/L is a broad warm-water reference—not a Bay compliance rule.",
+      },
+    },
   },
   ph: {
     label: "pH",
@@ -105,6 +164,28 @@ export const metricDefinitions: Record<MetricKey, {
     parameterCode: "00400",
     explanation: "A measure of acidity and alkalinity. pH has no concentration unit.",
     colors: ["#e6dcfb", "#9b73ed", "#5b349f"],
+    guide: {
+      question: "How acidic or alkaline is the water?",
+      reading: "pH is logarithmic: a one-unit change represents a tenfold change in hydrogen-ion activity.",
+      comparison: "Use local natural variation and the waterbody type. Rapid changes can matter even when a value sits inside a broad range.",
+      lowLabel: "More acidic",
+      highLabel: "More alkaline",
+      sourceLabel: "EPA: pH and aquatic life",
+      sourceUrl: "https://www.epa.gov/caddis/ph",
+      reference: {
+        min: 5,
+        max: 10,
+        unit: "pH",
+        title: "Focused aquatic-life reference",
+        bands: [
+          { from: 5, to: 6.5, label: "Below broad range", tone: "concern" },
+          { from: 6.5, to: 8.5, label: "EPA marine range", tone: "reference" },
+          { from: 8.5, to: 9, label: "Freshwater extension", tone: "context" },
+          { from: 9, to: 10, label: "Above broad range", tone: "concern" },
+        ],
+        note: "EPA guidance cites pH 6.5–8.5 for marine aquatic life and 6.5–9.0 for freshwater. The complete pH scale runs from 0 to 14.",
+      },
+    },
   },
   turbidity: {
     label: "Turbidity",
@@ -112,6 +193,16 @@ export const metricDefinitions: Record<MetricKey, {
     parameterCode: "63680",
     explanation: "A measure of cloudiness. Methods and units stay visible rather than being casually merged.",
     colors: ["#f8e7c5", "#d99b32", "#855b14"],
+    guide: {
+      question: "How much suspended material is scattering light?",
+      reading: "Turbidity rises with particles such as sediment, algae, and organic matter. Higher values usually mean cloudier water.",
+      comparison: "Compare like-for-like methods and units. Rain, tides, flow, and local sediment can change the normal range quickly.",
+      lowLabel: "Clearer relative reading",
+      highLabel: "Cloudier relative reading",
+      sourceLabel: "USGS: Turbidity and Water",
+      sourceUrl: "https://www.usgs.gov/water-science-school/science/turbidity-and-water",
+      reference: null,
+    },
   },
   conductivity: {
     label: "Conductivity",
@@ -119,6 +210,16 @@ export const metricDefinitions: Record<MetricKey, {
     parameterCode: "00095",
     explanation: "Electrical conductance can help describe dissolved ions, but it is not the same as salinity.",
     colors: ["#cef0e8", "#2aa88f", "#176555"],
+    guide: {
+      question: "How readily can the water carry an electrical current?",
+      reading: "Conductivity increases as dissolved ions increase. Tides, freshwater inflow, geology, temperature, and pollution can all affect it.",
+      comparison: "Bay and stream values naturally differ by orders of magnitude. Compare the same station and season; do not relabel this as salinity.",
+      lowLabel: "Fewer dissolved ions",
+      highLabel: "More dissolved ions",
+      sourceLabel: "USGS: Conductivity and Water",
+      sourceUrl: "https://www.usgs.gov/water-science-school/science/conductivity-electrical-conductance-and-water",
+      reference: null,
+    },
   },
 };
 
@@ -158,17 +259,21 @@ export const stations: Station[] = [
   },
 ];
 
-export const mapStationAllowlist = [
-  "USGS-11162765",
-  "USGS-11176900",
-  "USGS-11172175",
-  "USGS-11455780",
-  "USGS-11455820",
-  "USGS-380807122034701",
-  "USGS-381126121554801",
-  "USGS-381142122015801",
-  "USGS-11162690",
+export const mapStationCatalog = [
+  { providerId: "USGS-11162765", displayName: "San Mateo Bridge" },
+  { providerId: "USGS-11176900", displayName: "Alameda Creek at Niles" },
+  { providerId: "USGS-11172175", displayName: "Coyote Creek at Edenvale" },
+  { providerId: "USGS-11455780", displayName: "Napa River at Napa" },
+  { providerId: "USGS-11455820", displayName: "Napa River at Oak Knoll Avenue" },
+  { providerId: "USGS-380807122034701", displayName: "Sonoma Creek at Sonoma" },
+  { providerId: "USGS-381126121554801", displayName: "Suisun Creek near Fairfield" },
+  { providerId: "USGS-381142122015801", displayName: "Green Valley Creek near Cordelia" },
+  { providerId: "USGS-11162690", displayName: "San Francisco Bay at Point San Pablo" },
 ] as const;
+
+export const mapStationAllowlist = mapStationCatalog.map((station) => station.providerId);
+
+const publicMapNameByProviderId = new Map(mapStationCatalog.map((station) => [station.providerId, station.displayName]));
 
 const stationSlugByProviderId = new Map(stations.map((station) => [station.providerId, station.slug]));
 
@@ -178,6 +283,15 @@ export function getStation(slug: string) {
 
 export function getStationSlug(providerId: string) {
   return stationSlugByProviderId.get(providerId) ?? null;
+}
+
+export function publicStationName(providerId: string, sourceName: string | null | undefined) {
+  const curatedName = publicMapNameByProviderId.get(providerId as (typeof mapStationCatalog)[number]["providerId"]);
+  if (curatedName) return curatedName;
+  const cleaned = sourceName?.replace(/\s+/g, " ").trim() ?? "";
+  const providerNumber = providerId.replace(/^USGS-/, "");
+  const looksLikeIdentifier = !cleaned || cleaned === providerId || cleaned === providerNumber || /^[\d\W_]+$/.test(cleaned);
+  return looksLikeIdentifier ? "Unnamed USGS monitoring location" : cleaned;
 }
 
 export function getStationSnapshot(station: Station) {
@@ -227,6 +341,7 @@ function capturedPoint(input: Omit<MapPoint, "stationSlug" | "source" | "sourceU
 }): MapPoint {
   return {
     ...input,
+    name: publicStationName(input.id, input.name),
     stationSlug: getStationSlug(input.id),
     source: "USGS continuous",
     sourceUrl: `https://waterdata.usgs.gov/monitoring-location/${input.id}/`,

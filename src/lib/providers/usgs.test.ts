@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { publicStationName } from "@/src/lib/data";
 import {
   assertUsgsHost,
   buildUsgsMapPoints,
@@ -102,5 +103,28 @@ describe("USGS normalization", () => {
     expect(() => assertUsgsHost("https://api.waterdata.usgs.gov/ogcapi/v0")).not.toThrow();
     expect(() => assertUsgsHost("https://example.com/ogcapi/v0")).toThrow(/allowlist/);
     expect(() => assertUsgsHost("http://api.waterdata.usgs.gov/ogcapi/v0")).toThrow(/allowlist/);
+  });
+
+  it("replaces provider identifiers with reviewed public names", () => {
+    expect(publicStationName("USGS-11162765", "11162765")).toBe("San Mateo Bridge");
+    expect(publicStationName("USGS-999", "999")).toBe("Unnamed USGS monitoring location");
+    expect(publicStationName("USGS-999", "  Plain Creek   at Town  ")).toBe("Plain Creek at Town");
+  });
+
+  it("omits stations whose source contains no usable measurement", () => {
+    const emptyLatest = {
+      features: [{
+        geometry: { coordinates: [-122.45, 37.8] },
+        properties: {
+          time_series_id: "empty-series",
+          monitoring_location_id: "USGS-11162690",
+          parameter_code: "00010",
+          time: "2026-09-15T16:45:00Z",
+          value: null,
+          unit_of_measure: "degC",
+        },
+      }],
+    };
+    expect(buildUsgsMapPoints(emptyLatest, { features: [] }, { features: [] }, { stationAllowlist: ["USGS-11162690"] })).toEqual([]);
   });
 });

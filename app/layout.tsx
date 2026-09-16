@@ -21,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </Link>
             <nav className="primary-nav" aria-label="Primary navigation">
               <Link href="/">Explore stations</Link>
+              <Link href="/learn/metrics">Metric guide</Link>
               <Link href="/about/data">How to read this</Link>
             </nav>
             <span className="header-status"><span className="status-dot" /> Prototype preview</span>
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <p className="footer-copy">A calm, careful way to understand the Bay’s water data.</p>
             </div>
             <div className="footer-links">
+              <Link href="/learn/metrics">Metric guide</Link>
               <Link href="/about/data">Data methods</Link>
               <a href="https://waterdata.usgs.gov/monitoring-location/USGS-11162765/" target="_blank" rel="noreferrer">USGS station ↗</a>
               <a href="https://www.usgs.gov/products/water-resources/online-water-data" target="_blank" rel="noreferrer">About USGS data ↗</a>

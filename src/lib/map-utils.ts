@@ -35,6 +35,27 @@ export function metricExtent(points: MapPoint[], key: MetricKey): [number, numbe
   return values.length ? [Math.min(...values), Math.max(...values)] : null;
 }
 
+export function metricVisualScale(points: MapPoint[], key: MetricKey) {
+  const displayMeasurements = points
+    .map((point) => selectDisplayMeasurement(point, key))
+    .filter((measurement): measurement is MapMeasurement => Boolean(measurement));
+  const byUnit = new Map<string, MapMeasurement[]>();
+  for (const measurement of displayMeasurements) {
+    const unitMeasurements = byUnit.get(measurement.unit) ?? [];
+    unitMeasurements.push(measurement);
+    byUnit.set(measurement.unit, unitMeasurements);
+  }
+  const dominantUnit = [...byUnit.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))[0];
+  if (!dominantUnit) return { extent: null, unit: null, comparablePoints: 0, excludedPoints: 0 };
+  const values = dominantUnit[1].map((measurement) => measurement.value as number);
+  return {
+    extent: [Math.min(...values), Math.max(...values)] as [number, number],
+    unit: dominantUnit[0],
+    comparablePoints: values.length,
+    excludedPoints: displayMeasurements.length - values.length,
+  };
+}
+
 function hexToRgb(hex: string) {
   const value = Number.parseInt(hex.slice(1), 16);
   return { r: value >> 16, g: (value >> 8) & 255, b: value & 255 };
