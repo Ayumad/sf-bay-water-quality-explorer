@@ -17,6 +17,8 @@ export type SpeciesObservation = {
   sourceUrl: string;
   imageUrl: string | null;
   attribution: string | null;
+  imageKind: "observation" | "species-reference" | null;
+  imageSourceUrl: string | null;
   license: string | null;
   status: ConservationStatus | null;
 };
@@ -49,6 +51,63 @@ function safeUrl(value: unknown, hosts: string[]): string | null {
   }
 }
 
+export function reusablePhoto(value: unknown) {
+  if (!record(value)) return null;
+  const license = text(value.license_code)?.toLowerCase();
+  if (!license || !["cc0", "cc-by", "cc-by-sa"].includes(license)) return null;
+  const url = safeUrl(value.medium_url ?? value.url, [
+    "static.inaturalist.org",
+    "inaturalist-open-data.s3.amazonaws.com",
+  ]);
+  const attribution = text(value.attribution);
+  if (
+    !url ||
+    !attribution ||
+    (Array.isArray(value.flags) && value.flags.length)
+  )
+    return null;
+  // iNaturalist supplies medium URLs for taxon photos; observation photos often
+  // expose only square URLs. The size variant retains the same photo identity.
+  const imageUrl = url.replace(/\/square\.(jpe?g|png)(?=\?|$)/i, "/medium.$1");
+  const id =
+    typeof value.id === "number" && Number.isInteger(value.id) && value.id > 0
+      ? value.id
+      : null;
+  return {
+    imageUrl,
+    attribution,
+    license,
+    imageSourceUrl: id ? `https://www.inaturalist.org/photos/${id}` : url,
+  };
+}
+
+export function attachSpeciesPhotos(
+  data: SpeciesObservation[],
+  payload: unknown,
+) {
+  if (!record(payload) || !Array.isArray(payload.results)) return;
+  for (const observation of data) {
+    if (observation.imageUrl) continue;
+    const matches = payload.results.filter(
+      (taxon) =>
+        record(taxon) &&
+        taxon.id === observation.taxonId &&
+        text(taxon.name)?.toLowerCase() ===
+          observation.scientificName.toLowerCase(),
+    );
+    if (matches.length !== 1 || !record(matches[0])) continue;
+    const taxon = matches[0];
+    const candidates = Array.isArray(taxon.taxon_photos)
+      ? taxon.taxon_photos.flatMap((item) => (record(item) ? [item.photo] : []))
+      : [];
+    const photo = [...candidates, taxon.default_photo]
+      .map(reusablePhoto)
+      .find(Boolean);
+    if (photo)
+      Object.assign(observation, photo, { imageKind: "species-reference" });
+  }
+}
+
 export function parseObservations(payload: unknown): SpeciesObservation[] {
   if (!record(payload) || !Array.isArray(payload.results))
     throw new Error("Invalid observation response");
@@ -72,14 +131,9 @@ export function parseObservations(payload: unknown): SpeciesObservation[] {
       )
         return [];
       seen.add(row.taxon.id);
-      const photo =
-        Array.isArray(row.photos) && record(row.photos[0])
-          ? row.photos[0]
-          : null;
-      // Display only explicitly reusable photos, with attribution; never expose observation coordinates.
-      const license = photo ? text(photo.license_code) : null;
-      const reusable =
-        license && ["cc0", "cc-by", "cc-by-sa"].includes(license.toLowerCase());
+      const photo = (Array.isArray(row.photos) ? row.photos : [])
+        .map(reusablePhoto)
+        .find(Boolean);
       return [
         {
           taxonId: row.taxon.id,
@@ -88,14 +142,11 @@ export function parseObservations(payload: unknown): SpeciesObservation[] {
           group: text(row.taxon.iconic_taxon_name) ?? "Organism",
           observedOn,
           sourceUrl: `https://www.inaturalist.org/observations/${row.id}`,
-          imageUrl: reusable
-            ? safeUrl(photo?.url, [
-                "static.inaturalist.org",
-                "inaturalist-open-data.s3.amazonaws.com",
-              ])
-            : null,
-          attribution: reusable ? text(photo?.attribution) : null,
-          license: reusable ? license : null,
+          imageUrl: photo?.imageUrl ?? null,
+          attribution: photo?.attribution ?? null,
+          license: photo?.license ?? null,
+          imageKind: photo ? "observation" : null,
+          imageSourceUrl: photo?.imageSourceUrl ?? null,
           status: null,
         },
       ];
@@ -201,6 +252,26 @@ export async function loadWildlife(
       });
       if (!response.ok) throw new Error("Observation provider unavailable");
       const data = parseObservations(await response.json());
+      // One bounded lookup for missing species imagery, not one request per card.
+      const missingPhotos = data.filter((item) => !item.imageUrl);
+      const photoLookup = missingPhotos.length
+        ? (async () => {
+            try {
+              const ids = missingPhotos.map((item) => item.taxonId).join(",");
+              const response = await fetcher(
+                `https://api.inaturalist.org/v1/taxa/${ids}`,
+                {
+                  signal: AbortSignal.timeout(5_000),
+                  headers: { Accept: "application/json" },
+                  redirect: "error",
+                },
+              );
+              if (response.ok) attachSpeciesPhotos(data, await response.json());
+            } catch {
+              /* Photo availability never removes a dated observation. */
+            }
+          })()
+        : Promise.resolve();
       // Independent, bounded requests use exact scientific names, never shared numeric IDs/common names.
       const statusSignal = AbortSignal.timeout(5_000);
       await Promise.all(
@@ -240,6 +311,7 @@ export async function loadWildlife(
           }
         }),
       );
+      await photoLookup;
       const result: WildlifeResult = {
         ...base,
         data,

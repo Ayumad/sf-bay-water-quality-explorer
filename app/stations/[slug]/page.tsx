@@ -23,7 +23,7 @@ export default async function StationPage({
           <h1>{station.name}</h1>
           <p>
             Water measurements and nearby wildlife, with the source and date
-            attached. Select a different station below to keep exploring.
+            attached. Use the change-station link below to keep exploring.
           </p>
         </div>
       </section>
@@ -31,6 +31,7 @@ export default async function StationPage({
         stations={stations}
         initialFeed={feed}
         initialSlug={slug}
+        profile
       />
     </main>
   );

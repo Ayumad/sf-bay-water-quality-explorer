@@ -1,9 +1,16 @@
 "use client";
-import Image from "next/image";
+import Link from "next/link";
+import { SpeciesPhoto } from "./SpeciesPhoto";
 import { useEffect, useState } from "react";
 import type { WildlifeResult } from "@/src/lib/services/wildlife";
 
-export function WildlifePanel({ slug }: { slug: string }) {
+export function WildlifePanel({
+  slug,
+  stationName,
+}: {
+  slug: string;
+  stationName: string;
+}) {
   const [state, setState] = useState<{
     slug: string;
     result?: WildlifeResult;
@@ -35,21 +42,22 @@ export function WildlifePanel({ slug }: { slug: string }) {
   };
   return (
     <section
+      id="wildlife"
       className="wildlife-section"
       aria-labelledby="wildlife-heading"
       aria-busy={loading}
     >
       <div className="section-heading">
         <div>
-          <p className="eyebrow">THE LIVING BAY</p>
-          <h2 id="wildlife-heading">Neighbors in this ecosystem.</h2>
+          <p className="eyebrow">03 / MEET THE NEIGHBORS</p>
+          <h2 id="wildlife-heading">Life near this station.</h2>
         </div>
         <span className="pill">Within 5 km · previous year</span>
       </div>
       <p className="section-lede">
-        Community observations give a glimpse of nearby life. They don’t
-        establish which species are absent or link a sighting to a water
-        measurement.
+        Discover species observed near {stationName}. Sightings give ecological
+        context, not a complete inventory or a direct link to any one water
+        reading.
       </p>
       {loading ? (
         <div className="wildlife-loading" role="status">
@@ -69,26 +77,7 @@ export function WildlifePanel({ slug }: { slug: string }) {
             <div className="wildlife-grid">
               {result.data.map((animal) => (
                 <article className="species-card" key={animal.taxonId}>
-                  <div className="species-art">
-                    {animal.imageUrl ? (
-                      <Image
-                        src={animal.imageUrl}
-                        alt={animal.commonName}
-                        fill
-                        sizes="(max-width: 700px) 100vw, 33vw"
-                        unoptimized
-                      />
-                    ) : (
-                      <span aria-hidden="true">
-                        {animal.group === "Aves"
-                          ? "↗"
-                          : animal.group === "Plantae"
-                            ? "❧"
-                            : "◎"}
-                      </span>
-                    )}
-                    <span className="species-group">{animal.group}</span>
-                  </div>
+                  <SpeciesPhoto animal={animal} />
                   <div className="species-content">
                     <h3>{animal.commonName}</h3>
                     <p className="scientific-name">{animal.scientificName}</p>
@@ -113,7 +102,20 @@ export function WildlifePanel({ slug }: { slug: string }) {
                     )}
                     {animal.attribution && (
                       <p className="photo-credit">
-                        {animal.attribution} · {animal.license}
+                        {animal.attribution} · {animal.license?.toUpperCase()}
+                        {animal.imageSourceUrl && (
+                          <>
+                            {" "}
+                            ·{" "}
+                            <a
+                              href={animal.imageSourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Photo source ↗
+                            </a>
+                          </>
+                        )}
                       </p>
                     )}
                   </div>
@@ -126,6 +128,22 @@ export function WildlifePanel({ slug }: { slug: string }) {
               Retry wildlife
             </button>
           )}
+          <div className="explore-next">
+            <div>
+              <p className="eyebrow">04 / MAKE SENSE OF IT</p>
+              <h3>What connects water and wildlife?</h3>
+              <p>
+                Explore how temperature, oxygen, and other measurements shape
+                the conditions organisms live in.
+              </p>
+            </div>
+            <Link
+              className="button secondary"
+              href={`/learn/metrics?station=${slug}`}
+            >
+              Continue to the field guide →
+            </Link>
+          </div>
           <p className="small-note">
             Status is attached only to an exact, unambiguous scientific-name
             match. Unknown means unverified, not unthreatened. NatureServe

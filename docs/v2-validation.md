@@ -4,10 +4,10 @@
 
 - TypeScript: passed.
 - ESLint with zero warnings: passed.
-- Vitest: 24 tests passed across four files.
+- Vitest: 28 tests passed across four files.
 - Next.js optimized production build: passed.
 
-Tests cover source normalization, sensor/depth separation, finite/missing/zero values, source host restrictions, corrected station identity, invalid/unknown route rejection before provider calls, preserved fallback timestamps, successful empty sources, malformed/duplicate taxa, image licensing/host validation, unambiguous scientific-name matches, failed status lookups, and wildlife/water independence.
+Tests cover source normalization, sensor/depth separation, finite/missing/zero values, source host restrictions, corrected station identity, invalid/unknown route rejection before provider calls, preserved fallback timestamps, successful empty sources, malformed/duplicate taxa, image licensing/host validation, scanning for a reusable observation photo, exact-taxon reference-photo selection, preserving observation images, flagged-image rejection, unambiguous scientific-name matches, failed status lookups, and wildlife/water independence.
 
 ## Browser checks
 
@@ -20,11 +20,14 @@ Headless Chrome against the local preview:
 - Explanations expand with native disclosure controls.
 - A failed refresh retains readings and displays a readable message.
 - An obsolete delayed wildlife response cannot replace a newer station selection.
-- Direct station profiles and share URLs stay synchronized.
+- Dedicated station profiles omit the repeated station picker; changing station preserves context.
 - Field-guide and sources/methods routes render.
 - Unknown station route returns 404.
 - No document horizontal overflow at 1440, 768, 390, and 360 px.
 - No uncaught page errors during the acceptance run.
+- Six real Coyote Creek wildlife photos loaded with attribution and reference labels.
+- The wildlife-to-field-guide-to-readings journey returns to the selected station.
+- Failed image requests display a readable placeholder and retain species cards.
 
 ## Live provider smoke checks
 

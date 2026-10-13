@@ -84,9 +84,10 @@ export default function DataMethodsPage() {
             unthreatened, and no observations does not mean no wildlife.
           </p>
           <p>
-            Only explicitly reusable observation photos are displayed, with the
-            returned attribution and license. Exact observation coordinates are
-            not shown.
+            Photos carry their attribution, license, and source link. When a
+            sighting has no reusable photo, an exact-species reference image may
+            be shown and is labeled separately from the local observation. Exact
+            observation coordinates are not shown.
           </p>
           <h2>The sources</h2>
           <ul>

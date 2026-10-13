@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { MetricGuide } from "@/src/components/MetricGuide";
-import { metricDefinitions, metricKeys } from "@/src/lib/data";
+import { getStation, metricDefinitions, metricKeys } from "@/src/lib/data";
 
-export default function MetricGuidePage() {
+export default async function MetricGuidePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ station?: string }>;
+}) {
+  const query = await searchParams;
+  const station = query.station ? getStation(query.station) : undefined;
   return (
     <main id="main-content">
       <section className="page-hero metric-page-hero">
@@ -20,6 +26,16 @@ export default function MetricGuidePage() {
         className="content-section shell metric-guide-page"
         aria-labelledby="guide-heading"
       >
+        <div className="field-guide-return">
+          <Link
+            href={
+              station ? `/?station=${station.slug}#water-readings` : "/#explore"
+            }
+          >
+            ← {station ? `Back to ${station.name}` : "Back to the Bay explorer"}
+          </Link>
+          <span>Explore a measurement, then return to its real readings.</span>
+        </div>
         <div className="metric-guide-intro">
           <div>
             <p className="section-kicker">Five different questions</p>

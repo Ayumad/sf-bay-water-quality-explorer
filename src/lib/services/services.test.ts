@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { capturedMapFeed, getStation, stations } from "@/src/lib/data";
 import { loadWaterFeed, stationPoint } from "./water";
-import { loadWildlife, matchConservation, parseObservations } from "./wildlife";
+import {
+  loadWildlife,
+  matchConservation,
+  parseObservations,
+  attachSpeciesPhotos,
+  reusablePhoto,
+} from "./wildlife";
 import { GET as waterGET } from "@/app/api/stations/[slug]/measurements/route";
 import { GET as wildlifeGET } from "@/app/api/stations/[slug]/wildlife/route";
 
@@ -193,5 +199,99 @@ describe("M3 wildlife and conservation boundaries", () => {
     expect(
       stationPoint(capturedMapFeed(), "san-mateo-bridge")?.measurements.length,
     ).toBeGreaterThan(0);
+  });
+});
+
+describe("Wildlife imagery", () => {
+  it("selects a reusable photo even when the first observation photo is restricted", () => {
+    const data = parseObservations({
+      results: [
+        {
+          ...observation,
+          photos: [
+            {
+              url: "https://static.inaturalist.org/photos/9/square.jpg",
+              license_code: null,
+            },
+            ...observation.photos,
+          ],
+        },
+      ],
+    });
+    expect(data[0].imageKind).toBe("observation");
+    expect(data[0].imageUrl).toContain("medium.jpg");
+    expect(data[0].attribution).toBe("Photo by researcher");
+  });
+  it("labels an exact taxon reference photo separately from the dated observation", () => {
+    const data = parseObservations({
+      results: [{ ...observation, photos: [] }],
+    });
+    attachSpeciesPhotos(data, {
+      results: [
+        {
+          id: 123,
+          name: observation.taxon.name,
+          taxon_photos: [
+            {
+              photo: {
+                id: 999,
+                license_code: "cc-by",
+                attribution: "Reference photographer",
+                medium_url:
+                  "https://static.inaturalist.org/photos/999/medium.jpg",
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(data[0].imageKind).toBe("species-reference");
+    expect(data[0].imageSourceUrl).toBe(
+      "https://www.inaturalist.org/photos/999",
+    );
+    expect(data[0].observedOn).toBe(observation.observed_on);
+    expect(data[0].sourceUrl).toBe(
+      "https://www.inaturalist.org/observations/456",
+    );
+  });
+  it("does not attach imagery from a different species or overwrite an observation photo", () => {
+    const data = parseObservations({
+      results: [{ ...observation, photos: [] }],
+    });
+    attachSpeciesPhotos(data, {
+      results: [
+        {
+          id: 123,
+          name: "Wrong species",
+          default_photo: { ...observation.photos[0] },
+        },
+      ],
+    });
+    expect(data[0].imageUrl).toBeNull();
+    const pictured = parseObservations({ results: [observation] });
+    attachSpeciesPhotos(pictured, {
+      results: [
+        {
+          id: 123,
+          name: observation.taxon.name,
+          default_photo: {
+            ...observation.photos[0],
+            url: "https://static.inaturalist.org/reference.jpg",
+          },
+        },
+      ],
+    });
+    expect(pictured[0].imageKind).toBe("observation");
+  });
+  it("rejects flagged, unsafe, and unattributed images", () => {
+    expect(
+      reusablePhoto({ ...observation.photos[0], flags: ["inappropriate"] }),
+    ).toBeNull();
+    expect(
+      reusablePhoto({ ...observation.photos[0], attribution: null }),
+    ).toBeNull();
+    expect(
+      reusablePhoto({ ...observation.photos[0], url: "javascript:alert(1)" }),
+    ).toBeNull();
   });
 });

@@ -38,10 +38,12 @@ export function WaterDashboard({
   stations,
   initialFeed,
   initialSlug,
+  profile = false,
 }: {
   stations: Station[];
   initialFeed: MapFeed;
   initialSlug?: string;
+  profile?: boolean;
 }) {
   const [selected, setSelected] = useState(
     stations.some((station) => station.slug === initialSlug)
@@ -99,128 +101,186 @@ export function WaterDashboard({
     <section
       id="explore"
       className="explore-section shell"
-      aria-labelledby="explore-heading"
+      aria-labelledby={profile ? undefined : "explore-heading"}
+      aria-label={profile ? "Explore this station" : undefined}
     >
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">01 / FIND YOUR PLACE</p>
-          <h2 id="explore-heading">A closer look at the Bay.</h2>
-        </div>
-        <p className="section-lede">
-          Choose a location. Explore what’s measured.
-          <br />
-          Understand what it means.
-        </p>
-      </div>
-      <div className="explorer-toolbar">
-        <label className="search-field">
-          <span aria-hidden="true">⌕</span>
-          <input
-            type="search"
-            maxLength={100}
-            placeholder="Search a station or region"
-            aria-label="Search monitoring stations"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <label className="filter-field">
-          <span>Waterbody</span>
-          <select
-            value={kind}
-            onChange={(event) => setKind(event.target.value)}
-          >
-            <option value="all">All locations</option>
-            <option value="estuary">Bay / estuary</option>
-            <option value="stream">Creeks / rivers</option>
-          </select>
-        </label>
-        <div className="view-toggle" aria-label="Station view">
-          <button
-            type="button"
-            aria-pressed={view === "map"}
-            onClick={() => setView("map")}
-          >
-            Map + list
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "list"}
-            onClick={() => setView("list")}
-          >
-            List only
-          </button>
-        </div>
-      </div>
-      <div className={`station-explorer ${view === "list" ? "list-only" : ""}`}>
-        <aside className="station-picker" aria-label="Monitoring stations">
-          <div className="picker-heading">
-            <strong>{filtered.length} locations</strong>
-            <span>USGS monitoring stations</span>
+      <nav
+        className="exploration-path"
+        aria-label="Explore this station step by step"
+      >
+        {profile ? (
+          <Link href={`/?station=${selected}#explore`}>← Change station</Link>
+        ) : (
+          <a href="#explore">
+            <span>01</span> Choose a station
+          </a>
+        )}
+        <a href="#water-readings">
+          <span>02</span> Read the water
+        </a>
+        <a href="#wildlife">
+          <span>03</span> Meet the wildlife
+        </a>
+        <Link href={`/learn/metrics?station=${selected}`}>
+          <span>04</span> Learn the meaning
+        </Link>
+      </nav>
+      {!profile && (
+        <>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">01 / FIND YOUR PLACE</p>
+              <h2 id="explore-heading">A closer look at the Bay.</h2>
+            </div>
+            <p className="section-lede">
+              Choose a location. Explore what’s measured.
+              <br />
+              Understand what it means.
+            </p>
           </div>
-          <div className="station-list">
-            {filtered.map((item) => (
-              <button
-                className={`station-option ${selected === item.slug ? "active" : ""}`}
-                key={item.slug}
-                type="button"
-                aria-pressed={selected === item.slug}
-                onClick={() => choose(item.slug)}
+          <div className="explorer-toolbar">
+            <label className="search-field">
+              <span aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                maxLength={100}
+                placeholder="Search a station or region"
+                aria-label="Search monitoring stations"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <label className="filter-field">
+              <span>Waterbody</span>
+              <select
+                value={kind}
+                onChange={(event) => setKind(event.target.value)}
               >
-                <span className="location-icon" aria-hidden="true">
-                  ⌖
-                </span>
-                <span>
-                  <strong>{item.name}</strong>
-                  <small>
-                    {item.type.includes("Stream")
-                      ? "Creek / river"
-                      : "Bay / estuary"}
-                  </small>
-                </span>
-                <span aria-hidden="true">↗</span>
+                <option value="all">All locations</option>
+                <option value="estuary">Bay / estuary</option>
+                <option value="stream">Creeks / rivers</option>
+              </select>
+            </label>
+            <div className="view-toggle" aria-label="Station view">
+              <button
+                type="button"
+                aria-pressed={view === "map"}
+                onClick={() => setView("map")}
+              >
+                Map + list
               </button>
-            ))}
-            {!filtered.length && (
-              <div className="empty-panel">
-                <h3>No matching stations</h3>
-                <p>Try a different name or show all waterbodies.</p>
-                <button
-                  className="text-button"
-                  type="button"
-                  onClick={() => {
-                    setQuery("");
-                    setKind("all");
-                  }}
-                >
-                  Clear filters
-                </button>
+              <button
+                type="button"
+                aria-pressed={view === "list"}
+                onClick={() => setView("list")}
+              >
+                List only
+              </button>
+            </div>
+          </div>
+          <div
+            className={`station-explorer ${view === "list" ? "list-only" : ""}`}
+          >
+            <aside className="station-picker" aria-label="Monitoring stations">
+              <div className="picker-heading">
+                <strong>{filtered.length} locations</strong>
+                <span>USGS monitoring stations</span>
               </div>
+              <div className="station-list">
+                {filtered.map((item) => (
+                  <button
+                    className={`station-option ${selected === item.slug ? "active" : ""}`}
+                    key={item.slug}
+                    type="button"
+                    aria-pressed={selected === item.slug}
+                    onClick={() => choose(item.slug)}
+                  >
+                    <span className="location-icon" aria-hidden="true">
+                      ⌖
+                    </span>
+                    <span>
+                      <strong>{item.name}</strong>
+                      <small>
+                        {item.type.includes("Stream")
+                          ? "Creek / river"
+                          : "Bay / estuary"}
+                      </small>
+                    </span>
+                    <span aria-hidden="true">↗</span>
+                  </button>
+                ))}
+                {!filtered.length && (
+                  <div className="empty-panel">
+                    <h3>No matching stations</h3>
+                    <p>Try a different name or show all waterbodies.</p>
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        setKind("all");
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            </aside>
+            {view === "map" && (
+              <ExplorerMap
+                stations={filtered}
+                selected={selected}
+                onSelect={choose}
+              />
             )}
           </div>
-        </aside>
-        {view === "map" && (
-          <ExplorerMap
-            stations={filtered}
-            selected={selected}
-            onSelect={choose}
-          />
-        )}
-      </div>
-      <section className="station-readings" aria-labelledby="station-heading">
+          <div className="selected-location-cue">
+            <div aria-live="polite">
+              <span className="eyebrow">YOUR SELECTED LOCATION</span>
+              <strong>{station.name}</strong>
+              <p>
+                {filtered.some((item) => item.slug === selected)
+                  ? "Ready to explore its readings and nearby life."
+                  : "This station is outside your current filters. Its readings remain selected."}
+              </p>
+            </div>
+            <div className="selection-actions">
+              <a className="button primary" href="#water-readings">
+                View water readings ↓
+              </a>
+              <a className="text-button" href="#wildlife">
+                Explore nearby wildlife ↓
+              </a>
+            </div>
+          </div>
+        </>
+      )}
+      <section
+        id="water-readings"
+        className="station-readings"
+        aria-labelledby="station-heading"
+      >
         <div className="station-title-row">
           <div>
             <p className="eyebrow">02 / READ THE WATER</p>
-            <h2 id="station-heading">{station.name}</h2>
+            <h2 id="station-heading">
+              {profile ? "Water measurements" : station.name}
+            </h2>
             <p className="station-location">
               {station.coordinates.lat.toFixed(4)}° N ·{" "}
               {Math.abs(station.coordinates.lng).toFixed(4)}° W <span> / </span>{" "}
               {station.type}
             </p>
           </div>
-          <Link className="button secondary" href={`/stations/${station.slug}`}>
-            Full station profile ↗
-          </Link>
+          {!profile && (
+            <Link
+              className="button secondary"
+              href={`/stations/${station.slug}`}
+            >
+              Station details ↗
+            </Link>
+          )}
         </div>
         <div
           className={`data-notice ${feed.degraded || feed.mode === "captured-snapshot" || refreshError ? "saved" : ""}`}
@@ -286,6 +346,7 @@ export function WaterDashboard({
                   </span>
                   <h3>{definition.label}</h3>
                 </div>
+                <p className="metric-brief">{definition.explanation}</p>
                 {readings.length ? (
                   readings.map((reading) => (
                     <div className="reading-series" key={reading.seriesId}>
@@ -295,6 +356,11 @@ export function WaterDashboard({
                         })}
                         <span>{key === "ph" ? "" : reading.unit}</span>
                       </p>
+                      {readings.length > 1 && (
+                        <p className="sensor-depth">
+                          {reading.depth ?? "Separate source series"}
+                        </p>
+                      )}
                       <span className="reading-state">
                         {readingLabel(reading, feed)}
                       </span>
@@ -350,6 +416,12 @@ export function WaterDashboard({
                   >
                     Learn from the source ↗
                   </a>
+                  <Link
+                    className="guide-context-link"
+                    href={`/learn/metrics?station=${selected}#${key}`}
+                  >
+                    Open {definition.label.toLowerCase()} guide →
+                  </Link>
                 </details>
               </article>
             );
@@ -361,7 +433,7 @@ export function WaterDashboard({
           data never means zero.
         </p>
       </section>
-      <WildlifePanel slug={selected} />
+      <WildlifePanel slug={selected} stationName={station.name} />
     </section>
   );
 }

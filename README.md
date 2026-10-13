@@ -23,7 +23,7 @@ pnpm check
 - Bounded live USGS integration is enabled by default, with five-second request timeouts, validated source values, and saved fallback content. Set `USGS_LIVE_DATA_ENABLED=false` for an explicitly dated offline demonstration.
 - Separate iNaturalist observation requests and exact-name NatureServe conservation lookups. Wildlife failures never block water data; unknown status never means unthreatened.
 - Improved handling of empty results, missing fields, preserved zero values, late station responses, unsupported taxa, and outage notices.
-- Privacy-aware observation cards: no precise observation coordinates; only explicitly reusable photos, with returned attribution and license.
+- Privacy-aware observation cards: no precise observation coordinates; only explicitly reusable photos, with returned attribution, license, and source link. Species reference images are labeled separately from local observation photos.
 - Tests for unknown-station rejection, station identity, zero/missing values, saved timestamps, outages, malformed observations, taxon matching, and conservation-provider isolation.
 
 ## Architecture and module contracts

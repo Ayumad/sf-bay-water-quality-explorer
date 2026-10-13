@@ -24,7 +24,7 @@ Turn selected San Francisco Bay/watershed source measurements into understandabl
 1. Server-rendered page resolves configured M1 station metadata and calls the water service.
 2. M2 retrieves USGS measurements and metadata concurrently, using allowlisted IDs.
 3. The dashboard displays each measurement’s original date and source; explanations are local.
-4. After selection, M3 requests nearby dated observations, then looks up only those taxa’s exact scientific names in NatureServe.
+4. After selection, M3 requests nearby dated observations, then looks up only those taxa’s exact scientific names in NatureServe. In parallel, one bounded batched iNaturalist taxa request supplies explicitly reusable reference photos for sightings without a reusable observation image. Reference images require both taxon ID and scientific name to match; photo failure leaves observation cards intact.
 5. A canceled/obsolete browser request cannot overwrite the selected station’s wildlife panel.
 6. M4 catches provider failures independently: water keeps saved readings or dated source fixture; wildlife keeps cached observations or a readable message.
 
@@ -42,3 +42,7 @@ Turn selected San Francisco Bay/watershed source measurements into understandabl
 ## Release process
 
 Review the PR and Vercel preview, confirm station/sensor coverage, run the automated checks, then approve deployment. Keep the previous deployment available for rollback. Production configuration may opt out of live USGS requests with `USGS_LIVE_DATA_ENABLED=false` for a clearly labeled dated demonstration.
+
+## Exploration flow
+
+A four-step navigation follows station selection, water readings, nearby wildlife, and the field guide. The selected-location cue links directly to readings or wildlife. Field-guide links preserve the selected station and offer a contextual return. Dedicated profiles show readings and wildlife with a change-station link, avoiding a repeated map/picker. Metric cards include a short explanation before optional source details.
