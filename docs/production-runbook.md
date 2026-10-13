@@ -1,49 +1,34 @@
-# Production data runbook
+# Baywatcher 2.0 release runbook
 
-The public application defaults to its dated source snapshot. Set
-USGS_LIVE_DATA_ENABLED=true only for a candidate-series preview; that mode
-preserves time_series_id, depth, method, qualifier, and approval metadata but
-does not make a verified publication claim.
+## Before merging
 
-## Coverage review
+1. Review the PR and preview against the M1–M4 requirements in `v2-architecture.md`.
+2. Run `pnpm check` and verify the Vercel deployment build.
+3. Verify station names/coordinates against USGS metadata. The 2.0 refactor corrected several mismatches; do not restore the former public-name list.
+4. Inspect exact series IDs, depths, methods, units, dates, and approval qualifiers for live readings. Different series remain separate.
+5. Check the station list, keyboard selection, explanation disclosure, mobile layouts, and map attribution/failure behavior.
+6. Test water and wildlife outages independently. Saved results retain original dates; empty successful responses remain empty.
+7. Confirm NatureServe matches are exact and unambiguous, global ranks are distinct from federal status, and unknown remains unknown.
 
-Before marking a series verified, record:
+## Vercel configuration
 
-1. Monitoring-location ID and exact time-series ID.
-2. Parameter and statistic codes.
-3. Raw and canonical units.
-4. Sublocation/depth and method.
-5. Expected reporting cadence.
-6. Earliest/newest timestamps and a captured response.
-7. Reviewer and review date.
+Use the existing Next.js project/preset. Do not change the production branch until the refactor is approved.
 
-Upper and lower sensors are separate series. Never choose between them merely
-because one appears first or has the newest tied timestamp.
+- `USGS_LIVE_DATA_ENABLED`: enabled by default; set `false` for a clearly labeled dated offline demonstration.
+- `USGS_API_KEY`: optional, server-only; use the provider's documented credential when required.
+- `NEXT_PUBLIC_SITE_URL`: optional public URL.
+- `DATABASE_URL` and `CRON_SECRET`: reserved; neither persistence nor cron ingestion is wired in v2.
 
-## Database rollout
+Never put credentials in browser-safe public variables. Scope preview and production separately.
 
-1. Provision PostgreSQL with encrypted connections and backups.
-2. Apply db/migrations/0001_initial.sql once through a controlled release job.
-3. Seed Git-reviewed station and series configuration.
-4. Give the importer write access and the web runtime read-only access.
-5. Use a PostgreSQL advisory lock around each provider import.
-6. Validate an entire station/series batch before the transaction updates
-   published_series_snapshots.
-7. Keep the previous snapshot when a request fails or returns no usable records.
+## Data and cache limitations
 
-No database credential is required for the current preview. Adding the importer
-is intentionally blocked on verified series choices and deployment credentials.
+Live USGS requests have a five-second timeout each and run concurrently. Warm-instance successful water feeds are cached five minutes; successful wildlife results are cached ten minutes. Overlapping requests are coalesced. Instance caches are ephemeral: no durability or cross-instance consistency is claimed.
 
-## Release checks
+The last fallback is the inherited September 8, 2026 snapshot. Its values are dated and exact historical sensor metadata was not retained. UI labeling must make this visible. It is not promoted to an approved current reading.
 
-Run pnpm check, then verify:
+For optional durable persistence, provision Supabase/PostgreSQL separately, review the retained migration, validate exact sensor choices, and implement repositories and last-known-good snapshots before claiming database-backed caching.
 
-- snapshot mode with no environment variables;
-- live-preview mode with and without a USGS API key;
-- timeout, malformed payload, empty collection, 429, and 5xx fallbacks;
-- keyboard navigation and 360 px layout;
-- the SFEI Baylands Habitat Map tile layer loads from Suisun Bay through Lower
-  South Bay, includes visible attribution, and fails without obscuring the base
-  map or station list;
-- every displayed reading includes series, collection time, unit, source, and
-  any supplied qualifier/approval state.
+## Rollback
+
+Keep the previous Vercel deployment. If a production release has a regression, restore that deployment through Vercel and revert the reviewed merge through GitHub. Record the affected route, station, request state, and reproduction steps in an issue; do not paste credentials or stack traces into user-facing messages.

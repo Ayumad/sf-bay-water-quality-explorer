@@ -1,0 +1,139 @@
+"use client";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import type { WildlifeResult } from "@/src/lib/services/wildlife";
+
+export function WildlifePanel({ slug }: { slug: string }) {
+  const [state, setState] = useState<{
+    slug: string;
+    result?: WildlifeResult;
+    failed?: boolean;
+  }>({ slug: "" });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/stations/${encodeURIComponent(slug)}/wildlife`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unavailable");
+        return response.json() as Promise<WildlifeResult>;
+      })
+      .then((result) => {
+        if (!controller.signal.aborted) setState({ slug, result });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setState({ slug, failed: true });
+      });
+    return () => controller.abort();
+  }, [slug, attempt]);
+  const loading = state.slug !== slug,
+    result = !loading ? state.result : undefined;
+  const retry = () => {
+    setState({ slug: "" });
+    setAttempt((value) => value + 1);
+  };
+  return (
+    <section
+      className="wildlife-section"
+      aria-labelledby="wildlife-heading"
+      aria-busy={loading}
+    >
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">THE LIVING BAY</p>
+          <h2 id="wildlife-heading">Neighbors in this ecosystem.</h2>
+        </div>
+        <span className="pill">Within 5 km · previous year</span>
+      </div>
+      <p className="section-lede">
+        Community observations give a glimpse of nearby life. They don’t
+        establish which species are absent or link a sighting to a water
+        measurement.
+      </p>
+      {loading ? (
+        <div className="wildlife-loading" role="status">
+          <span className="spinner" /> Looking for nearby observations…
+          <p>Your water measurements are ready above.</p>
+        </div>
+      ) : (
+        <>
+          <p
+            className={`wildlife-status ${result?.isFallback || state.failed ? "is-fallback" : ""}`}
+            role="status"
+          >
+            {result?.message ??
+              "Wildlife observations are temporarily unavailable. Water measurements remain available."}
+          </p>
+          {!!result?.data.length && (
+            <div className="wildlife-grid">
+              {result.data.map((animal) => (
+                <article className="species-card" key={animal.taxonId}>
+                  <div className="species-art">
+                    {animal.imageUrl ? (
+                      <Image
+                        src={animal.imageUrl}
+                        alt={animal.commonName}
+                        fill
+                        sizes="(max-width: 700px) 100vw, 33vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <span aria-hidden="true">
+                        {animal.group === "Aves"
+                          ? "↗"
+                          : animal.group === "Plantae"
+                            ? "❧"
+                            : "◎"}
+                      </span>
+                    )}
+                    <span className="species-group">{animal.group}</span>
+                  </div>
+                  <div className="species-content">
+                    <h3>{animal.commonName}</h3>
+                    <p className="scientific-name">{animal.scientificName}</p>
+                    <p
+                      className={`conservation-label ${animal.status?.isAtRisk ? "at-risk" : ""}`}
+                    >
+                      {animal.status?.label ??
+                        "Conservation status unavailable"}
+                    </p>
+                    <p className="species-date">Observed {animal.observedOn}</p>
+                    <a href={animal.sourceUrl} target="_blank" rel="noreferrer">
+                      iNaturalist observation ↗
+                    </a>
+                    {animal.status && (
+                      <a
+                        href={animal.status.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        NatureServe record ↗
+                      </a>
+                    )}
+                    {animal.attribution && (
+                      <p className="photo-credit">
+                        {animal.attribution} · {animal.license}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          {(result?.isFallback || state.failed) && (
+            <button type="button" className="button secondary" onClick={retry}>
+              Retry wildlife
+            </button>
+          )}
+          <p className="small-note">
+            Status is attached only to an exact, unambiguous scientific-name
+            match. Unknown means unverified, not unthreatened. NatureServe
+            global ranks describe conservation risk and are separate from legal
+            listings.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}

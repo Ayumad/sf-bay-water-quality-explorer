@@ -22,9 +22,15 @@ describe("map presentation utilities", () => {
     const pointWithNtu = {
       ...fallbackMapPoints[2],
       id: "unit-test-ntu",
-      measurements: fallbackMapPoints[2].measurements.map((measurement) => ({ ...measurement, unit: "NTU" })),
+      measurements: fallbackMapPoints[2].measurements.map((measurement) => ({
+        ...measurement,
+        unit: "NTU",
+      })),
     };
-    const scale = metricVisualScale([...fallbackMapPoints, pointWithNtu], "turbidity");
+    const scale = metricVisualScale(
+      [...fallbackMapPoints, pointWithNtu],
+      "turbidity",
+    );
     expect(scale.unit).toBe("FNU");
     expect(scale.excludedPoints).toBe(1);
   });
@@ -33,20 +39,42 @@ describe("map presentation utilities", () => {
     const point = {
       ...fallbackMapPoints[0],
       measurements: [
-        { ...fallbackMapPoints[0].measurements[0], seriesId: "b", time: "2026-09-15T10:00:00Z" },
-        { ...fallbackMapPoints[0].measurements[0], seriesId: "a", time: "2026-09-15T10:00:00Z" },
+        {
+          ...fallbackMapPoints[0].measurements[0],
+          seriesId: "b",
+          time: "2026-09-15T10:00:00Z",
+        },
+        {
+          ...fallbackMapPoints[0].measurements[0],
+          seriesId: "a",
+          time: "2026-09-15T10:00:00Z",
+        },
       ],
     };
     expect(selectDisplayMeasurement(point, "temperature")?.seriesId).toBe("a");
   });
 
   it("escapes provider-controlled tooltip text", () => {
-    expect(escapeHtml("<img src=x onerror='bad'>")).toBe("&lt;img src=x onerror=&#39;bad&#39;&gt;");
+    expect(escapeHtml("<img src=x onerror='bad'>")).toBe(
+      "&lt;img src=x onerror=&#39;bad&#39;&gt;",
+    );
   });
 
   it("uses reviewed Bay-area assignments for configured stations", () => {
-    expect(regionForPoint(fallbackMapPoints.find((point) => point.id === "USGS-11455780")!)).toBe("san-pablo");
-    expect(regionForPoint(fallbackMapPoints.find((point) => point.id === "USGS-381142122015801")!)).toBe("suisun");
-    expect(regionForPoint(fallbackMapPoints.find((point) => point.id === "USGS-11172175")!)).toBe("lower-south-bay");
+    expect(
+      regionForPoint(
+        fallbackMapPoints.find((point) => point.id === "USGS-11455780")!,
+      ),
+    ).toBe("suisun");
+    expect(
+      regionForPoint(
+        fallbackMapPoints.find((point) => point.id === "USGS-381142122015801")!,
+      ),
+    ).toBe("suisun");
+    expect(
+      regionForPoint(
+        fallbackMapPoints.find((point) => point.id === "USGS-11172175")!,
+      ),
+    ).toBe("lower-south-bay");
   });
 });
