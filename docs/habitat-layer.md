@@ -1,3 +1,5 @@
+> Historical 1.0 reference. Habitat-layer exploration is deferred from the focused M1–M4 v2 MVP. See `v2-architecture.md`.
+
 # Habitat layer provenance
 
 The habitat view uses cached map tiles from the **Baylands Habitat Map 2020 (BHM 2020), version 1.1**, published by the San Francisco Estuary Institute and Aquatic Science Center. The source represents conditions in 2020 and was published in 2024. It replaces the prototype's hand-drawn habitat polygons with the source map's shoreline-following geometry across Suisun Bay, Carquinez Strait, San Pablo Bay, Central Bay, South Bay, and Lower South Bay.

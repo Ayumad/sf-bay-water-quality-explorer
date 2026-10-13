@@ -1,83 +1,177 @@
 import Link from "next/link";
-
 export default function DataMethodsPage() {
   return (
     <main id="main-content">
       <section className="page-hero">
         <div className="shell">
-          <p className="section-kicker">Data methods</p>
-          <h1>Clarity is part of the interface.</h1>
-          <p>Baywatcher is designed to make the limits of a measurement visible, not bury them under a polished number.</p>
+          <p className="eyebrow">SOURCES & METHODS</p>
+          <h1>
+            A clearer view.
+            <br />
+            <em>An honest picture.</em>
+          </h1>
+          <p>
+            Every reading has a place, a date, and a source. Here’s how to
+            understand what you’re seeing.
+          </p>
         </div>
       </section>
-      <section className="content-section shell">
-        <div className="methods-grid">
-          <div className="prose">
-            <h2>What this release does</h2>
-            <p>This release is an educational product preview with a map-first homepage. The map is the first thing on screen: it establishes broad body-of-water learning zones, color-specific metric lenses, a simplified base layer, hover/focus details, measurement states, provenance affordances, and honest empty states needed for a production dashboard.</p>
-            <p>The default homepage uses an explicitly dated USGS source snapshot. Operators may enable a bounded live preview, which joins latest observations to monitoring-location and time-series metadata and keeps distinct sensor depths separate. Candidate values are never promoted to a verified station snapshot without a formal coverage review.</p>
-
-            <h2>Station names, missing data, and map boundaries</h2>
-            <p>The public map uses a small, reviewed station catalog instead of showing raw provider identifiers as names. Technical station and time-series IDs remain available behind source links and expandable details for auditability.</p>
-            <p>A station with no usable measurements is removed from the feed. For a selected metric, stations without a value are hidden by default and can be revealed with an explicit “data unavailable” state. Missing never means zero.</p>
-            <p>The station list uses named Bay areas for navigation but does not draw invented station-service boundaries. The habitat view instead uses the published SFEI Baylands Habitat Map 2020 across Suisun Bay, Carquinez Strait, San Pablo Bay, Central Bay, South Bay, and Lower South Bay. It is habitat inventory geometry—not a property, jurisdiction, or wetland delineation.</p>
-
-            <h2>Why colors are metric-specific</h2>
-            <p>Temperature, dissolved oxygen, pH, turbidity, and conductivity have different units and meanings, so the map uses a distinct hue for each selected lens. Light-to-dark shades encode the relative observed range in the currently loaded source set. Every underlying sensor series remains listed, and the scale is not an AQI-style score, ecological threshold system, or safety advisory.</p>
-
-            <h2>Why there is a habitat view</h2>
-            <p>The optional habitat view uses the San Francisco Estuary Institute’s Baylands Habitat Map 2020. It follows mapped deep and shallow subtidal water, tidal flats, tidal channels, marshes, ponds and pannes, managed water, and diked baylands rather than hand-drawn geometric regions. It represents 2020 conditions and is not a live biodiversity observation, species count, current field survey, or conservation-status claim.</p>
-
-            <h2>Source strategy</h2>
-            <p>Modern USGS continuous data is the primary map source for recent readings. The Water Quality Portal adds historical and discrete sample context, while NOAA CO-OPS can complement coastal temperature, conductivity, salinity, tides, and currents where station coverage overlaps. These products have different semantics and should not be mixed into a single “live” card.</p>
-            <p>The planned reading path is visitor → app → published database snapshot. Visitors should never trigger an unbounded upstream query. A scheduled importer will validate, normalize, and publish an atomic station/series batch after the coverage gate is passed.</p>
-
-            <h2>Reading the five metrics</h2>
-            <p><Link href="/learn/metrics">The visual metric guide</Link> explains what each measurement can and cannot say. Only pH and dissolved oxygen receive broad numeric reference bands; the other metrics are deliberately presented as contextual comparisons because universal “good versus bad” thresholds would be misleading.</p>
-            <table className="decision-table">
-              <thead><tr><th>Metric</th><th>Interface rule</th></tr></thead>
-              <tbody>
-                <tr><td>Temperature</td><td>Display Celsius initially; preserve the original unit and documented conversion.</td></tr>
-                <tr><td>Dissolved oxygen</td><td>Keep concentration and percent saturation separate. About 2 mg/L is common hypoxia context, not a universal compliance determination.</td></tr>
-                <tr><td>Turbidity</td><td>Keep method and unit distinctions such as NTU and FNU visible; cloudiness is not a universal safety scale.</td></tr>
-                <tr><td>pH</td><td>Show EPA’s broad aquatic-life ranges with their marine/freshwater scope; preserve method metadata and local natural variation.</td></tr>
-                <tr><td>Conductivity</td><td>Keep source units and depth visible; do not relabel conductivity as salinity.</td></tr>
-              </tbody>
-            </table>
-
-            <h2>Freshness and unavailable states</h2>
-            <p>“Fetched now” is never substituted for “measured on.” Continuous readings, discrete samples, successful empty responses, provider failures, and withdrawn records each have distinct states. If upstream data fails, the app should keep a valid saved reading with its actual age and a degraded-source message.</p>
-            <p>Not measured here, no available result, status not verified, and reviewed import pending are intentional labels. They prevent a missing value from being mistaken for zero, safety, absence, or a neighboring station’s data.</p>
-
-            <h2>Wildlife and conservation</h2>
-            <p>The planned wildlife panel is a bounded, reviewed observation import: within 5 km of a station, during the previous 12 months, with up to 20 distinct taxa. Records preserve their source links, dates, spatial-precision treatment, attribution, and licensing metadata.</p>
-            <p>Conservation records remain separate from observations. A reviewed crosswalk must connect source taxon IDs to accepted scientific names and authority records. Unknown status means “Status not verified,” never “not threatened.”</p>
-
-            <h2>Accessibility commitment</h2>
-            <p>The target is WCAG 2.2 AA with manual verification. The current UI provides semantic headings, keyboard-accessible links, visible focus, text-first state labels, responsive layouts, and reduced-motion support. Region controls are keyboard-focusable and labeled; the selected detail rail is live-announced, and source points remain listed for provenance. Any future map or chart must have a complete list/table alternative.</p>
-
-            <h2>Known gates before production</h2>
-            <ul>
-              <li>Capture and review actual USGS payloads for 3–5 stations and the desired metrics.</li>
-              <li>Choose the managed PostgreSQL setup and migration/backup policy.</li>
-              <li>Import a reviewed wildlife file and status crosswalk, or document a compliant automated path.</li>
-              <li>Review the production tile-provider terms, attribution, usage budget, and fallback behavior.</li>
-              <li>Run fixture-backed failure tests for timeouts, malformed payloads, empty responses, 429s, partial station failure, and overlapping imports.</li>
-            </ul>
-            <p><Link className="arrow-link" href="/">Return to stations <span aria-hidden="true">→</span></Link></p>
-          </div>
-          <aside className="method-aside">
-            <h2>The small print, surfaced</h2>
-            <ol>
-              <li>Source and collection date travel with every displayed result.</li>
-              <li>Measurement age and importer health are separate facts.</li>
-              <li>Depth and method distinctions stay visible.</li>
-              <li>Empty data is a product state, not an invitation to guess.</li>
-              <li>This dashboard is educational, not a water-safety advisory.</li>
-            </ol>
-            <a href="https://api.waterdata.usgs.gov/docs/" target="_blank" rel="noreferrer">Read the USGS API docs ↗</a>
-          </aside>
+      <section className="content-section shell methods-grid">
+        <div className="prose">
+          <h2>What Baywatcher does</h2>
+          <p>
+            Baywatcher is an educational explorer for selected San Francisco Bay
+            and watershed monitoring locations. Choose a station from the map or
+            searchable list, read available water measurements and explanations,
+            and explore community wildlife observations nearby. No account is
+            needed.
+          </p>
+          <h2>Measurements, not safety scores</h2>
+          <p>
+            A single number cannot determine whether a location is safe for
+            drinking, swimming, fishing, or pets. We preserve units, collection
+            time, source, sensor depth, method, and qualifiers when the provider
+            supplies them. Different sensor depths remain separate; missing
+            values are never replaced by zero.
+          </p>
+          <p>
+            Our <Link href="/learn/metrics">field guide</Link> explains each
+            metric’s meaning and ecological context. Broad reference bands are
+            contextual learning aids, not local compliance assessments.
+          </p>
+          <h2>Live requests and saved readings</h2>
+          <p>
+            USGS is the active water-data integration. The server makes bounded
+            requests for the configured stations. If the provider fails or
+            exceeds a five-second request timeout, we retain the last successful
+            response available in that server instance, or return the dated
+            source snapshot inherited from the first release.
+          </p>
+          <p>
+            The saved snapshot was captured on September 8, 2026. Its early
+            records did not retain exact series/depth metadata; they are labeled
+            saved source readings, not approved current station conditions.
+            Public station names and coordinates were checked against USGS
+            monitoring-location metadata during this refactor. Exact historical
+            sensor identities still need review. An archived reading may be much
+            older than the snapshot date.
+          </p>
+          <p>
+            Each card shows its original collection date. Fetching or refreshing
+            a page does not make a measurement newer. A successful empty
+            response shows no available readings rather than silently
+            manufacturing data.
+          </p>
+          <h2>Wildlife and conservation</h2>
+          <p>
+            iNaturalist provides up to six distinct taxa from a bounded request
+            for research-grade observations within 5 km during the previous
+            year. A sighting describes a community observation; it does not
+            prove habitat occupancy today or establish an ecological effect from
+            a particular water measurement.
+          </p>
+          <p>
+            NatureServe conservation records are queried by exact scientific
+            name. We display a status only when one unambiguous record matches.
+            Global ranks describe conservation risk and are distinct from
+            federal threatened/endangered listings. Provider identifiers and
+            common names are never treated as interchangeable taxonomic keys.
+          </p>
+          <p>
+            Conservation lookup failures do not hide species observations.
+            Wildlife outages do not hide water data. Saved wildlife results keep
+            their original observation dates. Unknown status does not mean
+            unthreatened, and no observations does not mean no wildlife.
+          </p>
+          <p>
+            Photos carry their attribution, license, and source link. When a
+            sighting has no reusable photo, an exact-species reference image may
+            be shown and is labeled separately from the local observation. Exact
+            observation coordinates are not shown.
+          </p>
+          <h2>The sources</h2>
+          <ul>
+            <li>
+              <a
+                href="https://api.waterdata.usgs.gov/docs/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                USGS Water Data
+              </a>{" "}
+              — current integration for continuous measurements and station
+              metadata.
+            </li>
+            <li>
+              <a
+                href="https://www.waterqualitydata.us/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                EPA Water Quality Portal
+              </a>{" "}
+              — historical/discrete sample resource; not presented as an active
+              live feed in this release.
+            </li>
+            <li>
+              <a
+                href="https://www.inaturalist.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                iNaturalist
+              </a>{" "}
+              — attributed nearby observations.
+            </li>
+            <li>
+              <a
+                href="https://explorer.natureserve.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                NatureServe Explorer
+              </a>{" "}
+              — conservation ranks and available federal status information.
+            </li>
+            <li>
+              Esri World Light Gray — map tiles. The station list remains usable
+              if tiles fail.
+            </li>
+          </ul>
+          <h2>Built to remain understandable</h2>
+          <p>
+            The list is a complete alternative to map selection. Controls
+            support keyboard navigation, status messages use text, and layouts
+            adapt to desktop and mobile. An older response for one station
+            cannot replace the wildlife results for a newly selected station.
+          </p>
+          <p>
+            API requests and secrets stay server-side. Public routes accept only
+            configured station slugs, responses are validated, and provider text
+            is rendered as text. Accounts, alerts, and visitor database writes
+            are outside this MVP.
+          </p>
+          <h2>Before a production release</h2>
+          <p>
+            Review the exact historical sensor identities, confirm current data
+            coverage, run deployed accessibility/performance checks, and decide
+            whether persistent Supabase caching is needed. Server-instance
+            caches are temporary and do not survive all redeployments or cold
+            starts.
+          </p>
         </div>
+        <aside className="method-aside">
+          <p className="eyebrow">A FEW THINGS TO REMEMBER</p>
+          <h2>Read the context.</h2>
+          <ol>
+            <li>Collection date ≠ page-load date.</li>
+            <li>Missing data ≠ zero.</li>
+            <li>Unknown status ≠ unthreatened.</li>
+            <li>A nearby sighting ≠ a census.</li>
+            <li>Environmental context ≠ a safety advisory.</li>
+          </ol>
+          <Link href="/#explore">Back to the explorer →</Link>
+        </aside>
       </section>
     </main>
   );

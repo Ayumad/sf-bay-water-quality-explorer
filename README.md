@@ -1,272 +1,103 @@
-# Baywatcher · SF Bay Water Quality Explorer
+# Baywatcher 2.0 · SF Bay Water Quality Explorer
 
-Baywatcher is an account-free educational dashboard for understanding water-quality data around San Francisco Bay. The homepage is a map-first explorer: navigate a calm, simplified basemap, hover or select a body-of-water region, switch between water-quality and habitat views, and read the source-point values represented by that region in context. Source, unit, collection time, method, depth, qualifier, and freshness all matter.
+A public, responsive environmental explorer built around Team SRVRRR’s PRD, SAD, SFDS, Test Plan, and Project Plan. Visitors choose a Bay/watershed monitoring station, read actual source measurements with explanations, and explore nearby wildlife and conservation context without an account.
 
-The deployed preview is intentionally review-gated. It defaults to a dated source snapshot and does not claim current conditions. An operator can explicitly enable a live candidate-series preview, but exact USGS time-series IDs and sensor depths remain visible and are not promoted to published station readings until reviewed. The production plan explicitly rejects fabricated measurements and neighboring-station substitution.
+## Run locally
 
-## Quick start
+Node.js 20.19+ and the pnpm version in `package.json` are required.
 
-Requirements:
-
-- Node.js 20.19+ (CI uses Node 22.13).
-- pnpm 9+.
-
-```bash
-pnpm install
+```sh
+pnpm install --frozen-lockfile
 pnpm dev
+# http://localhost:3000
+pnpm check
 ```
 
-Open `http://localhost:3000`.
+`pnpm check` runs lint, TypeScript, Vitest, and the production build. Tests use simulated providers; normal builds do not need external API access. The existing Vitest harness is retained rather than introducing a second runner alongside the specification’s Jest terminology.
 
-Useful checks:
+## What changed in 2.0
 
-```bash
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm build
-pnpm start
-```
+- A complete new interface: estuary-green / warm-paper visual system, responsive introduction, searchable station list, optional map, five measurement cards, plain-language explanations, and wildlife cards.
+- All nine configured source stations now have working profiles and measurement routes, instead of one profile with permanently unpublished values.
+- Incorrect first-draft station names corrected against official USGS monitoring-location metadata. For example, `USGS-11455780` is **Suisun Bay at Benicia Bridge**, not Napa River at Napa; `USGS-11162690` is **San Francisco Bay at Presidio**, not Point San Pablo.
+- Bounded live USGS integration is enabled by default, with five-second request timeouts, validated source values, and saved fallback content. Set `USGS_LIVE_DATA_ENABLED=false` for an explicitly dated offline demonstration.
+- Separate iNaturalist observation requests and exact-name NatureServe conservation lookups. Wildlife failures never block water data; unknown status never means unthreatened.
+- Improved handling of empty results, missing fields, preserved zero values, late station responses, unsupported taxa, and outage notices.
+- Privacy-aware observation cards: no precise observation coordinates; only explicitly reusable photos, with returned attribution, license, and source link. Species reference images are labeled separately from local observation photos.
+- Tests for unknown-station rejection, station identity, zero/missing values, saved timestamps, outages, malformed observations, taxon matching, and conservation-provider isolation.
 
-Run the complete local and CI verification sequence with `pnpm check`.
+## Architecture and module contracts
 
-## What is in the first release
+| Module             | Implementation                                                | Contract                                                                                                                               |
+| ------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| M1 Location        | `src/lib/data.ts`, `/api/stations`, dashboard search/list/map | Configured station ID, name, coordinates, and source; no external requests needed for selection                                        |
+| M2 Water Quality   | `src/lib/providers/usgs.ts`, `src/lib/services/water.ts`      | `MapFeed` containing distinct `MapMeasurement` records with values, units, source time, depth, method, qualifiers, and series identity |
+| M3 Wildlife        | `src/lib/services/wildlife.ts`                                | `WildlifeResult` with dated `SpeciesObservation` records and nullable `ConservationStatus`                                             |
+| M4 Fallback        | water and wildlife service boundaries                         | Original saved data + original retrieval/collection dates + explicit fallback message; otherwise a readable unavailable state          |
+| M5 Accounts/Alerts | Deferred                                                      | No accounts, saved visitor locations, notifications, or visitor writes                                                                 |
 
-- A responsive, map-first bay explorer with metric-specific color lenses for temperature, dissolved oxygen, pH, turbidity, and conductivity.
-- A calm, no-label gray base map with only major-city labels, built for quick orientation instead of road-by-road navigation.
-- A sourced habitat view using the San Francisco Estuary Institute's Baylands Habitat Map 2020 v1.1 tiles, with mapped classes that follow real shorelines and habitat boundaries.
-- Navigable Esri World Light Gray/Leaflet geography spanning Suisun Bay, Carquinez Strait, San Pablo Bay, Central Bay, South Bay, and Lower South Bay.
-- Keyboard-accessible Bay-area chips with a detail rail showing source-point coverage, observed spans, timestamps, freshness, and provenance. The chips organize stations without inventing station service-area polygons.
-- A default dated USGS source snapshot plus an opt-in, bounded live preview with a fallback when outbound access is unavailable.
-- Time-series metadata that keeps multiple sensors and depths distinct instead of collapsing them by station and parameter.
-- A station profile with five metric cards and explicit unavailable states.
-- An interactive metric guide for temperature, dissolved oxygen, pH, turbidity, and conductivity, with sourced comparison bands only where defensible and explicit interpretation limits.
-- Curated public station names, a default filter for locations without the selected metric, and friendly unavailable states when a user chooses to reveal them.
-- Provenance affordances: provider ID, station source link, review date, and state.
-- Wildlife and conservation-context panels with reviewed-import-pending states.
-- A methods page that documents interpretation, freshness, source separation, accessibility, and launch gates.
-- Read-only API contracts for allowlisted stations, bounded station measurements, and health.
-- Validating provider boundaries in `src/lib/providers/usgs.ts`, `src/lib/providers/wqp.ts`, and `src/lib/providers/noaa.ts`.
-- Unit tests, linting, typechecking, production-build CI, dependency updates, and an initial PostgreSQL migration.
-- A visual language built from CSS: deep estuary navy, water-aqua surfaces, warm caution accents, generous whitespace, and strong type hierarchy.
+Water and wildlife are fetched independently. The initial page provides server-rendered water results. Wildlife loads after selection and cancels an obsolete request when the visitor chooses another station. Map loading is independent; a searchable list is always available.
 
-## Product decisions
+The services share provider-independent UI contracts without creating a browser-to-server-to-self HTTP loop. Server pages call services directly. Browser refresh and wildlife requests use bounded read-only routes.
 
-### Audience and promise
+## Routes
 
-The audience is a curious member of the public, student, educator, or community partner—not an operator making an immediate health decision. The promise is “help me understand what this number means.” The interface therefore avoids a single water-quality score, red/green safety colors, and unexplained threshold judgments.
+| Route                               | Behavior                                                                   |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `/`                                 | Main explorer; optional `?station=<configured-slug>` for sharing selection |
+| `/stations/[slug]`                  | Configured station profile and explorer                                    |
+| `/learn/metrics`                    | Sourced measurement explanations and contextual reference bands            |
+| `/about/data`                       | Sources, freshness, wildlife methodology, accessibility, and limitations   |
+| `/api/stations?q=<term>`            | Configured metadata; case-insensitive search, max 100 characters           |
+| `/api/map-points`                   | Bounded shared water feed                                                  |
+| `/api/stations/[slug]/measurements` | Station measurements with fallback state and retrieval metadata            |
+| `/api/stations/[slug]/wildlife`     | Up to six distinct taxa, within 5 km and the previous year                 |
+| `/api/health`                       | Minimal health response                                                    |
 
-The site is educational. It is not a swimming, drinking, fishing, pet, or public-health advisory. That limitation is repeated at the station level because context belongs next to the measurement, not only in a footer.
+Unknown station slugs return 404 before external calls; invalid slugs return 400. External hosts are fixed, station IDs are allowlisted, provider responses are validated, and secrets remain server-side.
 
-### Map first, with a region summary and source-point alternative
+## Data behavior
 
-The homepage opens directly on a real, navigable Leaflet map using a simplified Esri World Light Gray base layer with visible attribution. Only major cities are added as labels by the app; the base layer intentionally keeps roads and minor place names quiet. The map is organized into named bodies of water without implying that one sensor represents an entire basin. Region chips move the map and provide a keyboard-friendly station grouping. The detail rail reports how many source points have the selected metric, the observed span without averaging unlike sensors or depths, the freshest timestamp, and every source point included in that region.
+USGS queries `latest-continuous`, `monitoring-locations`, and `time-series-metadata` for the station allowlist. Requests run in parallel with a five-second timeout each. Results preserve exact series, units, time, method/depth, qualifiers, and provisional approval metadata. Different sensor depths are never averaged. Blank values are not zero. Missing required timestamps/units are excluded.
 
-The habitat toggle renders the SFEI Baylands Habitat Map 2020 v1.1 Web Mercator tile service across the main Bay. Its mapped habitat classes follow the source geometry; Bay-area labels remain navigational aids and are not habitat or monitoring boundaries. The layer is context, not a claim that a particular species was observed there today. See `docs/habitat-layer.md` for source, version, coverage, and limitations.
+The server coalesces overlapping water fetches and caches a successful feed for five minutes in a warm instance. On failure it uses the prior response, or the original September 8, 2026 source fixture. The fixture did not retain exact historical sensor IDs/depths; the UI explicitly identifies it as a saved snapshot, not current conditions. Original collection times remain visible, including genuinely archived readings. A successful empty source returns no data rather than invoking outage fallback.
 
-The public map defaults to the captured snapshot. When `USGS_LIVE_DATA_ENABLED=true`, a bounded CQL query requests only the station allowlist and joins `latest-continuous/items`, `monitoring-locations/items`, and `time-series-metadata/items`. Records are keyed by `time_series_id`, so upper/lower sensors remain separate. Units, qualifiers, approval status, method, depth, statistic code, and collection time are retained. A production ingestion layer should ultimately publish verified snapshots from PostgreSQL rather than depending on an external request at page load.
+Wildlife requests retrieve up to 50 research-grade iNaturalist observations, then display at most six distinct taxa. Each retains observation date, source link, organism group, and optional attribution/license. An observation is not a census or proof of a current condition. NatureServe queries are limited to these taxa, use exact scientific names, and share a five-second status deadline. Ambiguous matches or failed lookups leave status null. Global G-ranks are labeled separately from available federal legal-status codes. The app neither equates common names nor reuses numeric IDs across providers.
 
-If an enabled live preview fails, the route returns the explicitly dated source snapshot. The map displays a degraded-source notice and labels those values as older or archival; no empty value is filled with a neighbor or a synthetic number.
+Successful wildlife responses are cached for ten minutes per station in a warm instance. A later outage can reuse those records with their original dates. With no saved observations, the UI displays an unavailable message; working water results are preserved.
 
-### Color system and AQI-like scanning
+**Caches are not durable.** They are per server instance and may disappear on redeploy or cold start. Supabase PostgreSQL persistence is optional per the SFDS; the existing migration remains available for a separately configured persistence implementation. No database connection is claimed without credentials and runtime wiring.
 
-Each metric gets a distinct hue because the metrics do not share a common unit or interpretation:
-
-| Lens | Hue | Meaning of the color |
-| --- | --- | --- |
-| Temperature | coral | This is the temperature lens, not a heat/safety judgment. |
-| Dissolved oxygen | blue | This is the oxygen lens; concentration stays separate from saturation. |
-| pH | violet | This is the acidity/alkalinity lens; pH has no concentration unit. |
-| Turbidity | amber | This is the cloudiness lens; NTU/FNU method distinctions remain visible. |
-| Conductivity | green | This is the dissolved-ion/conductance lens, not a synonym for salinity. |
-
-Within each metric hue, light-to-dark marker shades encode the relative range in the currently loaded source set. The lower/middle/higher key is a visual scanning aid only—not a composite water-health score, regulatory threshold, or swimming/drinking/fishing/pet-safety advisory. Gray markers have no value for the selected metric. The exact source value, series, unit, timestamp, depth, freshness state, qualifier, and source link remain the authoritative interface.
-
-### Preview mode and truthful absence
-
-The candidate station `USGS-11162765` is linked to its official station page. Its source metadata currently contains distinct upper- and lower-depth time series, demonstrating why parameter-only selection is unsafe. It is not described as having verified temperature, dissolved oxygen, pH, turbidity, or conductivity coverage here. Each card states the relevant verification gate.
-
-This avoids three common data errors:
-
-1. Treating a station’s existence as proof that the desired metrics are present.
-2. Combining different sensors or depths into one unlabeled value.
-3. Turning a missing value into zero, “safe,” “absent,” or a neighboring station’s result.
-
-## Information architecture
-
-| Route | Responsibility |
-| --- | --- |
-| `/` | Map-first Bay explorer, water-quality metric lenses, sourced habitat tiles, Bay-area summaries, source-point details, source coverage cards, metric explanations |
-| `/learn/metrics` | Sourced interpretation guide, contextual scales, comparison bands, and metric limitations |
-| `/stations/[slug]` | Station identity, snapshot cards, provenance, species/status empty states, limitations |
-| `/about/data` | Source strategy, metric rules, freshness policy, wildlife/status approach, accessibility and launch gates |
-| `/api/stations` | Allowlisted station metadata |
-| `/api/stations/[slug]/measurements` | Bounded station snapshot contract; no arbitrary station or source query |
-| `/api/health` | Minimal health response without infrastructure details |
-| `/api/map-points` | Bounded USGS latest-continuous + monitoring-location query with a dated fallback snapshot |
-| `src/lib/providers/usgs.ts` | USGS-specific types and normalization boundary |
-| `src/lib/providers/wqp.ts` | WQP historical/discrete result URL boundary |
-| `src/lib/providers/noaa.ts` | NOAA CO-OPS complementary coastal product boundary |
-| `src/lib/data.ts` | Current review-gated station registry and snapshot state |
-| `src/lib/regions.ts` | Geographic region and habitat definitions |
-| `src/lib/map-utils.ts` | Tested value-scale, selection, formatting, and region-summary logic |
-| `db/migrations/0001_initial.sql` | Initial durable station, series, measurement, run, and publication schema |
-
-Server-rendered pages call shared data directly. They do not make HTTP requests to the app’s own API. The API exists for external clients and future ingestion boundaries, not as an unnecessary internal hop.
-
-## Data architecture decision record
-
-### Primary source
-
-Modern USGS water-data APIs are the planned primary source for continuous readings. The Water Quality Portal is a separate candidate for historical or discrete sample context, not an interchangeable live sensor source. Each provider gets its own adapter and schema validation.
-
-Before enabling live data, create a coverage matrix with:
-
-- exact station ID;
-- exact series ID;
-- parameter code;
-- raw and canonical unit;
-- method and depth;
-- newest collection timestamp;
-- reporting cadence;
-- qualifiers and provisional state;
-- query used and response capture date.
-
-The initial candidate station is a starting point, not proof of five-metric coverage.
-
-### Persistence
-
-The repository now includes a provider-neutral PostgreSQL migration for durable last-successful snapshots, ingestion bookkeeping, atomic publication pointers, and reviewable history—not user accounts. The deployment may use Neon or another managed PostgreSQL service; runtime database wiring waits for deployment credentials and verified series choices.
-
-Git remains the authority for station configuration, reviewed explanations, and the small conservation crosswalk. The database owns fetched measurements and ingestion state. Do not create competing manual edits in both places.
-
-### Measurement contract
-
-Every normalized measurement should retain:
-
-- provider result/series identity;
-- internal metric;
-- parsed value plus raw value;
-- raw and canonical units;
-- collection time and its precision;
-- qualifier, provisional/estimated state;
-- method/depth metadata;
-- fetch time;
-- source URL.
-
-Use timezone-aware timestamps for instants. Keep date-only samples as dates; never manufacture midnight and imply an exact time.
-
-Normalization rules are deliberately conservative:
-
-- Temperature begins in Celsius, with the original unit preserved.
-- Dissolved-oxygen concentration and percent saturation remain separate metrics.
-- Turbidity method/unit variants such as NTU and FNU remain visible.
-- pH does not get a concentration unit.
-- Detection limits and inequalities remain qualifiers.
-- Invalid provider values are quarantined or omitted with a reason.
-- Multiple depths are labeled or documented as the primary series; they are never casually averaged.
-
-### Freshness
-
-Measurement age and importer health are separate facts. A healthy importer can fetch a source that has not published a new sample. Proposed defaults for a live release are:
-
-- continuous series within expected cadence: “Latest available”;
-- beyond the validated window: “Older reading”;
-- more than 24 hours old: remove current-condition implication;
-- discrete sample: “Sample collected on …”;
-- provider failure with saved data: keep last valid record and show degradation;
-- no saved value: show the specific unavailable state;
-- successful empty result: retain old data with its actual age;
-- withdrawn upstream record: exclude from latest selection but preserve provenance.
-
-These are UI policy defaults, not scientific safety thresholds.
-
-## Wildlife and conservation decisions
-
-The recommended first wildlife release is a reviewed, bounded observation import rather than a live request on every page visit. The target product choice is 5 km around a station, previous 12 months, at most 20 distinct taxa, with observation link and date. Approximate or highly uncertain coordinates should not be reproduced as precise pins. A lack of observations is not evidence of absence.
-
-Conservation status is a separate product. Start with a reviewed catalog using California CDFW and applicable federal authorities, preserving authority, jurisdiction, scientific name, scope, source URL, effective date when known, and review date. Common names do not join records. Unresolved identity stays visibly unknown.
-
-## Reliability and security plan
-
-The future scheduled importer should:
-
-- run on a deliberate schedule, initially 15 minutes only if source cadence and budget justify it;
-- authenticate the cron route with `Authorization: Bearer <CRON_SECRET>`;
-- use a database lease so overlapping runs cannot publish conflicting batches;
-- bound upstream requests and pagination;
-- use a short timeout, at most two transient retries with jitter, and honor `Retry-After`;
-- validate before transactional upsert;
-- publish station/series batches atomically;
-- retain the prior snapshot during failure;
-- record run IDs, request/error counts, schema version, and publication state.
-
-Security requirements are strict station allowlists, parameterized SQL, schema validation, upstream-host allowlists, output escaping, image-host restrictions, least-privilege credentials, secret-free logs, and no visitor write endpoints in the MVP.
-
-## Accessibility and performance
-
-The target is WCAG 2.2 AA plus manual verification. The current preview includes semantic headings, skip navigation, visible focus, keyboard links, text status labels, mobile layouts, and reduced-motion handling. Future maps and charts must be additive; a full list or accessible table remains the primary path.
-
-Proposed targets from the plan are p75 LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1, and warm snapshot API p95 ≤ 750ms under a defined cached test. These are engineering goals, not measured claims about this preview.
-
-Historical charts are deferred until series identity, units, depth, gaps, and timezone behavior are validated. When added, charts need an equivalent table and must not draw lines across missing observations.
-
-## Deployment guide
-
-### GitHub
-
-Create one repository, commit the app, lockfile, migrations, reviewed content, fixtures, and `.env.example`. Do not commit `.env.local`, provider keys, database URLs, or cron secrets. Protect the production branch and run typecheck/build in CI.
-
-### Vercel
-
-Import the repository with the Next.js preset. Set a supported Node runtime and a function region near the database. Start with the Vercel-provided domain. Production, preview, and development environment variables must be scoped separately.
-
-For an explicitly enabled live-source preview, configure:
+## Environment and deployment
 
 ```text
-DATABASE_URL
-USGS_API_KEY
 USGS_LIVE_DATA_ENABLED=true
-CRON_SECRET
-NEXT_PUBLIC_SITE_URL
+USGS_API_KEY=                   # optional, server-only
+NEXT_PUBLIC_SITE_URL=           # optional public URL
+DATABASE_URL=                   # reserved for optional persistence, not wired
+CRON_SECRET=                    # reserved; no importer/cron is enabled
 ```
 
-Only browser-safe values may use the `NEXT_PUBLIC_` prefix. Do not make normal builds depend on an available government API; use saved fixtures and seeded preview data for tests.
+Use Vercel’s Next.js preset. Production, preview, and development credentials must be scoped separately. Only browser-safe values may use the `NEXT_PUBLIC_` prefix. Secrets are excluded from Git. The USGS public service and iNaturalist/NatureServe public reads worked during validation, but credentials/provider availability may change; outages must remain readable.
 
-Apply reviewed migrations once through a controlled release job. Seed the reviewed station registry, explanations, status references, species import, and first valid snapshots. Trigger an authorized cron smoke test, then verify both a scheduled run and unauthorized failure. Record deployment ID, commit, migration version, station/config version, and rollback target.
+## Validation
 
-### Cost guardrails
+Automated checks: lint, TypeScript, Vitest, production build. Browser checks: desktop/mobile layouts, no document overflow, search, station switching, map/list controls, explanations, field guide, unknown routes, provider failures, and delayed obsolete wildlife responses. Live provider smoke checks are separate from deterministic tests.
 
-The plan targets a one-deployer, list-first release at approximately $50/month subject to actual database/backup quotes and measured use. It excludes extra Vercel seats, a custom domain, observability upgrades, and any fixed-egress/static-IP add-on. A map tile provider is a separate budget and reliability decision.
+See `docs/v2-validation.md` for the validation record and `docs/v2-architecture.md` for traceability and release limitations.
 
-## Acceptance checklist
+## Product boundaries
 
-- [ ] At least one public water adapter and 3–5 verified configured stations, or a recorded scope exception.
-- [ ] Every location selectable without a map or account.
-- [ ] Every displayed result has value/qualifier, unit where applicable, station, collection time precision, source link, and provisional state when supplied.
-- [ ] Each metric has reviewed meaning and ecological context.
-- [ ] Wildlife cards preserve observation source/date and stated geography/time window.
-- [ ] Status records preserve authority/scope/date; unknown stays unknown.
-- [ ] Timeout, malformed payload, empty response, 429, and partial-station failures remain honest.
-- [ ] No blocked primary flows at 360px, 200% zoom, or keyboard-only use.
-- [ ] Protected cron, validated inputs, no private credentials in browser bundles.
-- [ ] Replayed/overlapping imports are idempotent and cannot corrupt latest data.
-- [ ] Outage drill preserves valid saved readings and communicates age.
+The application is educational. It does not determine drinking, swimming, fishing, pet, or public-health safety. No single “water quality score” is created. Missing measurements remain unavailable; missing conservation information remains unknown. Measurement collection time is never replaced with page-load time.
 
-## Source links
+The initial acceptance target is the documented MVP: selected locations, actual water data, readable explanations, wildlife context, and reliable fallback handling. Review exact source coverage and sensor identity, deployment-specific accessibility/performance, and any persistent-cache decision before declaring production readiness. No claim is made that the 100-user or approximately three-second targets have already been demonstrated under load.
 
-- [USGS Water Data API documentation](https://api.waterdata.usgs.gov/docs/)
-- [USGS candidate station: 11162765](https://waterdata.usgs.gov/monitoring-location/USGS-11162765/)
-- [Water Quality Portal user guide](https://www.waterqualitydata.us/portal_userguide/)
-- [iNaturalist API recommended practices](https://www.inaturalist.org/pages/api+recommended+practices)
-- [California CESA program](https://wildlife.ca.gov/Conservation/CESA)
-- [USFWS species resources](https://www.fws.gov/program/endangered-species/species)
-- [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components)
-- [Leaflet](https://leafletjs.com/)
-- [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/)
-- [Vercel cron jobs](https://vercel.com/docs/cron-jobs)
-- [WCAG 2.2](https://www.w3.org/TR/WCAG22/)
+## Sources
 
-## License and attribution
+- [USGS Water Data API](https://api.waterdata.usgs.gov/docs/)
+- [iNaturalist API](https://api.inaturalist.org/v1/docs/)
+- [NatureServe Explorer API](https://explorer.natureserve.org/api-docs/)
+- [EPA Water Quality Portal](https://www.waterqualitydata.us/)
+- Metric explanations link directly to USGS and EPA sources in the field guide.
 
-The application code can be licensed by the repository owner. Provider data, observation records, imagery, map tiles, taxonomic content, and conservation records retain their own source terms and attribution requirements. Review those terms before importing or redistributing any record or image.
+Provider content and imagery retain their attribution and licensing requirements. Map attribution is visible in Leaflet. Accounts, alerts, historical charts, scheduled ingestion, persistent caching, EPA sample ingestion, and habitat-layer exploration are deferred from this focused 2.0 MVP.
